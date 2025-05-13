@@ -105,7 +105,7 @@ Este proyecto está licenciado bajo la **GNU Affero General Public License v3.0*
 - ✅ Si se ofrece este software como servicio web, también se debe proveer el código fuente.
 - ❌ No está permitido el uso con fines comerciales sin autorización expresa del autor.
 
-Consulta el texto completo de la licencia aquí: [https://www.gnu.org/licenses/agpl-3.0.html](https://www.gnu.org/licenses/agpl-3.0.html)
+Consulta el texto completo de la licencia [aquí](https://github.com/anheplast/curiosmaze/blob/main/LICENSE).
 
 ### Nota sobre Judge0
 
