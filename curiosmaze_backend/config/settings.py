@@ -1,0 +1,280 @@
+# config/settings.py
+
+import os
+from datetime import timedelta
+from pathlib import Path
+from dotenv import load_dotenv
+
+
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Cargar variables de .env
+load_dotenv(BASE_DIR / '.env')
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-your-secret-key-here'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+# Para desarrollo: acepta cualquier host (¡no en producción!)
+ALLOWED_HOSTS = ['*']
+
+
+# Configuraciones para Judge0
+JUDGE0_API_URL = os.environ.get('JUDGE0_API_URL')
+JUDGE0_AUTH_TOKEN = os.environ.get('JUDGE0_AUTH_TOKEN', None)
+JUDGE0_MAX_WORKERS = int(os.environ.get('JUDGE0_MAX_WORKERS', 5))
+JUDGE0_TIMEOUT = int(os.environ.get('JUDGE0_TIMEOUT', 10))
+
+
+# Límites de ejecución para Judge0
+CPU_TIME_LIMIT = float(os.environ.get('CPU_TIME_LIMIT', 2))
+CPU_EXTRA_TIME = float(os.environ.get('CPU_EXTRA_TIME', 0.5))
+WALL_TIME_LIMIT = float(os.environ.get('WALL_TIME_LIMIT', 5))
+MEMORY_LIMIT = int(os.environ.get('MEMORY_LIMIT', 128000))
+
+
+
+# Application definition
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    
+    # Aplicaciones de terceros
+    'rest_framework',
+    'corsheaders',
+    
+    # Aplicaciones propias
+    'users',
+    'evaluations',
+    'manage_students',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS middleware
+    'middleware.PermissionLoggingMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+
+# Configuración de logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/django.log',
+            'maxBytes': 1024*1024*5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'permissions_file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/permissions.log',
+            'maxBytes': 1024*1024*5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['console', 'permissions_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'permissions': {
+            'handlers': ['console', 'permissions_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
+ROOT_URLCONF = 'config.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'config.wsgi.application'
+
+# Database
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = 'es-es'  # Cambiado a español
+TIME_ZONE = 'America/Guayaquil'  # Ajusta a tu zona horaria
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuración de usuario personalizado
+AUTH_USER_MODEL = 'users.User'
+
+# Configuración REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    # Permitir acceso a endpoints públicos
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    # Los permisos a nivel de vista prevalezcan
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+}
+
+# Configuración de CORS más permisiva para desarrollo
+# Configuración de CORS
+CORS_ALLOW_ALL_ORIGINS = True  # Restringir en producción
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'GET', 
+    'POST', 
+    'PUT', 
+    'PATCH', 
+    'DELETE', 
+    'OPTIONS'
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+
+# Leer y procesar los orígenes de CORS
+cors_origins_str = os.environ.get('BACKEND_CORS_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
+
+# Leer y procesar los orígenes confiables para CSRF
+csrf_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_str.split(',') if origin.strip()]
+
+# Configuración para el caché de resultados
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'judge-results',
+        'TIMEOUT': 3600,  # 1 hora
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# Para entorno de producción, es recomendable usar Redis:
+# if os.environ.get('USE_REDIS_CACHE', 'False').lower() == 'true':
+#    CACHES = {
+#        'default': {
+#            'BACKEND': 'django_redis.cache.RedisCache',
+#            'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+#            'OPTIONS': {
+#                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#            }
+#        }
+#    }
+# # # # # # # # # # # # #
+
+# Configuración de JWT
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
+
+
+SESSION_COOKIE_SAMESITE = 'Lax'  # 'None' en producción con HTTPS
+SESSION_COOKIE_SECURE = False    # True en producción con HTTPS
+
+# Lo mismo para CSRF
+CSRF_COOKIE_SAMESITE = 'Lax'     # 'None' en producción con HTTPS
+CSRF_COOKIE_SECURE = False       # True en producción con HTTPS
+CSRF_COOKIE_HTTPONLY = False     # Permite que JavaScript acceda a la cookie CSRF
