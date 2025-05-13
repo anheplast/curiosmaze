@@ -40134,3 +40134,22 @@ INFO 2025-05-12 23:32:56,092 basehttp 9516 10760 "GET /api/users/csrf-token/ HTT
 INFO 2025-05-12 23:32:56,097 middleware 9516 10760 API: POST /api/users/login/
 INFO 2025-05-12 23:32:57,049 basehttp 9516 5920 "POST /api/users/login/ HTTP/1.1" 200 321
 INFO 2025-05-12 23:32:57,239 basehttp 9516 10760 "POST /api/users/login/ HTTP/1.1" 200 321
+INFO 2025-05-13 01:02:17,636 autoreload 17380 18060 Watching for file changes with StatReloader
+INFO 2025-05-13 01:02:39,008 autoreload 14412 14208 Watching for file changes with StatReloader
+INFO 2025-05-13 01:03:12,865 middleware 14412 1572 API: GET /api/users/csrf-token/
+INFO 2025-05-13 01:03:12,872 basehttp 14412 1572 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-05-13 01:03:12,881 basehttp 14412 13540 "OPTIONS /api/users/login/ HTTP/1.1" 200 0
+INFO 2025-05-13 01:03:12,884 middleware 14412 1572 API: POST /api/users/login/
+INFO 2025-05-13 01:03:12,944 middleware 14412 13804 API: GET /api/users/csrf-token/
+INFO 2025-05-13 01:03:12,946 basehttp 14412 13804 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-05-13 01:03:12,951 middleware 14412 13804 API: POST /api/users/login/
+INFO 2025-05-13 01:03:13,917 basehttp 14412 1572 "POST /api/users/login/ HTTP/1.1" 200 325
+INFO 2025-05-13 01:03:13,992 basehttp 14412 13804 "POST /api/users/login/ HTTP/1.1" 200 325
+INFO 2025-05-13 01:08:23,271 middleware 14412 18108 API: GET /api/users/csrf-token/
+INFO 2025-05-13 01:08:23,273 basehttp 14412 18108 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-05-13 01:08:23,281 middleware 14412 18108 API: POST /api/users/login/
+INFO 2025-05-13 01:08:23,343 middleware 14412 17840 API: GET /api/users/csrf-token/
+INFO 2025-05-13 01:08:23,347 basehttp 14412 17840 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-05-13 01:08:23,352 middleware 14412 17840 API: POST /api/users/login/
+INFO 2025-05-13 01:08:24,261 basehttp 14412 18108 "POST /api/users/login/ HTTP/1.1" 200 321
+INFO 2025-05-13 01:08:24,436 basehttp 14412 17840 "POST /api/users/login/ HTTP/1.1" 200 321
