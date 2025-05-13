@@ -39,7 +39,7 @@ La plataforma está construida siguiendo una arquitectura cliente-servidor:
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/curiosmaze.git
+git clone https://github.com/anheplast/curiosmaze.git
 cd curiosmaze/curiosmaze_backend
 
 # Crear entorno virtual
@@ -56,8 +56,8 @@ cp .env.example .env
 # Migraciones
 python manage.py migrate
 
-# Crear superusuario
-python manage.py createsuperuser
+# Crear administrador
+python create_admin.py
 
 # Ejecutar servidor
 python manage.py runserver
