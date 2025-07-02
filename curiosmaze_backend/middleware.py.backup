@@ -4,9 +4,9 @@ import json
 import traceback
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.exceptions import PermissionDenied, NotAuthenticated
+
 from django.core.cache import cache
 from django.http import HttpResponse
-import time
 
 logger = logging.getLogger('django')
 
@@ -78,68 +78,50 @@ class PermissionLoggingMiddleware(MiddlewareMixin):
                     pass
                     
         return response
-
-
+    
+    
 class JudgeRateLimitMiddleware:
     """
-    Middleware para limitar las solicitudes a Judge0.
-    CORREGIDO: Compatible con LocMemCache y AuthenticationMiddleware.
+    Middleware para limitar la frecuencia de envíos a Judge0.
+    CORREGIDO: Maneja el caso cuando request.user no está disponible.
     """
     def __init__(self, get_response):
         self.get_response = get_response
-        self.rate_limit_cache = {}  # Cache local como respaldo
     
     def __call__(self, request):
         if request.path.startswith('/api/submit-codigo/') or request.path.startswith('/api/submit-batch/'):
-            # CORREGIDO: Verificar que request.user existe
-            if hasattr(request, 'user') and request.user.is_authenticated:
-                user_id = request.user.id
-            else:
+            # CORRECCIÓN: Verificar que request.user existe antes de usarlo
+            try:
+                if hasattr(request, 'user') and request.user.is_authenticated:
+                    user_id = request.user.id
+                else:
+                    user_id = 'anonymous'
+            except AttributeError:
+                # Fallback si request.user no está disponible aún
                 user_id = 'anonymous'
             
             key = f"judge_rate_limit_{user_id}"
-            current_time = int(time.time())
             
-            # CORREGIDO: Usar solo métodos compatibles con LocMemCache
+            # Modificado: máximo 5 solicitudes por 2 minutos (antes era 10 por minuto)
+            current_count = cache.get(key, 0)
+            if current_count >= 5:
+                logger.warning(f"Rate limit excedido para usuario {user_id}: {current_count} solicitudes")
+                return HttpResponse(
+                    "Demasiadas solicitudes. Por favor, espere un momento antes de enviar más código.", 
+                    status=429
+                )
+            
+            # Incrementar contador
             try:
-                # Intentar usar cache de Django
-                cache_data = cache.get(key, {'count': 0, 'window_start': current_time})
-                
-                # Verificar si necesitamos resetear la ventana (2 minutos = 120 segundos)
-                if current_time - cache_data.get('window_start', 0) > 120:
-                    cache_data = {'count': 0, 'window_start': current_time}
-                
-                # Verificar límite (5 solicitudes por 2 minutos)
-                if cache_data['count'] >= 5:
-                    return HttpResponse(
-                        "Demasiadas solicitudes. Por favor, espere un momento antes de enviar más código.", 
-                        status=429
-                    )
-                
-                # Incrementar contador
-                cache_data['count'] += 1
-                
-                # CORREGIDO: Guardar en cache con timeout de 120 segundos
-                cache.set(key, cache_data, 120)
-                
-            except Exception as e:
-                # Fallback a cache local si Django cache falla
-                logger.warning(f"Error en cache de rate limiting: {e}")
-                
-                # Limpiar entradas antiguas del cache local
-                if key in self.rate_limit_cache:
-                    if current_time - self.rate_limit_cache[key]['window_start'] > 120:
-                        del self.rate_limit_cache[key]
-                
-                # Verificar limite en cache local
-                if key in self.rate_limit_cache:
-                    if self.rate_limit_cache[key]['count'] >= 5:
-                        return HttpResponse(
-                            "Demasiadas solicitudes. Por favor, espere un momento antes de enviar más código.", 
-                            status=429
-                        )
-                    self.rate_limit_cache[key]['count'] += 1
-                else:
-                    self.rate_limit_cache[key] = {'count': 1, 'window_start': current_time}
+                cache_key_incremented = cache.incr(key, 1)
+                logger.info(f"Rate limit para usuario {user_id}: {cache_key_incremented}/5 solicitudes")
+            except ValueError:
+                # La clave no existe, crearla
+                cache.set(key, 1, 120)  # 120 segundos = 2 minutos
+                logger.info(f"Rate limit iniciado para usuario {user_id}: 1/5 solicitudes")
+            
+            # Asegurar que la clave tenga TTL
+            if cache.ttl(key) < 0:
+                cache.expire(key, 120)  # 2 minutos
         
         return self.get_response(request)

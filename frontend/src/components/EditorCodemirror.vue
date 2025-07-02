@@ -22,7 +22,17 @@
 import { ref, onMounted, onBeforeUnmount, inject, watch, nextTick, computed } from 'vue';
 import { EditorView, basicSetup } from 'codemirror';
 import { EditorState } from '@codemirror/state';
+
+// Importar extensiones de lenguajes
 import { python } from '@codemirror/lang-python';
+import { javascript } from '@codemirror/lang-javascript';
+import { java } from '@codemirror/lang-java';
+import { cpp } from '@codemirror/lang-cpp';
+import { rust } from '@codemirror/lang-rust';
+import { go } from '@codemirror/lang-go';
+import { sql } from '@codemirror/lang-sql';
+import { php } from '@codemirror/lang-php';
+
 import { autocompletion } from '@codemirror/autocomplete';
 import { indentWithTab } from '@codemirror/commands';
 import { bracketMatching } from '@codemirror/language';
@@ -48,6 +58,84 @@ const themes = {
   tokyo: tokyoNight,
   vscode: vscodeDark,
   onedark: oneDark
+};
+
+// NUEVO: Mapeo de lenguajes Judge0 ID -> CodeMirror extension
+const languageMap = {
+  // Python
+  70: python, // Python 2.7.17
+  71: python, // Python 3.8.1
+  
+  // JavaScript/TypeScript
+  63: javascript, // JavaScript (Node.js 12.14.0)
+  74: javascript, // TypeScript (3.7.4)
+  
+  // Java
+  62: java, // Java (OpenJDK 13.0.1)
+  
+  // C/C++
+  50: cpp, // C (GCC 9.2.0)
+  48: cpp, // C (GCC 7.4.0)
+  49: cpp, // C (GCC 8.3.0)
+  75: cpp, // C (Clang 7.0.1)
+  54: cpp, // C++ (GCC 9.2.0)
+  52: cpp, // C++ (GCC 7.4.0)
+  53: cpp, // C++ (GCC 8.3.0)
+  76: cpp, // C++ (Clang 7.0.1)
+  
+  // Rust
+  73: rust, // Rust (1.40.0)
+  
+  // Go
+  60: go, // Go (1.13.5)
+  
+  // SQL
+  82: sql, // SQL (SQLite 3.27.2)
+  
+  // PHP
+  68: php, // PHP (7.4.1)
+};
+
+
+const getLanguageName = (langId) => {
+  const parsedId = parseInt(langId);
+
+  // Mapa de IDs a nombres de lenguaje
+  const languageNames = {
+    71: 'Python 3',
+    70: 'Python 2',
+    63: 'JavaScript',
+    62: 'Java',
+    54: 'C++',
+    53: 'C++ (GCC 8.3.0)',
+    52: 'C++ (GCC 7.4.0)',
+    50: 'C',
+    49: 'C (GCC 8.3.0)',
+    48: 'C (GCC 7.4.0)',
+    74: 'TypeScript',
+    73: 'Rust',
+    60: 'Go',
+    68: 'PHP'
+  };
+
+  // Intentar obtener desde availableLanguages si existe
+  if (availableLanguages.value && availableLanguages.value.length > 0) {
+    const lang = availableLanguages.value.find(l => l.id === parsedId);
+    if (lang) return lang.name;
+  }
+
+  // Sino, usar el mapa predefinido
+  return languageNames[parsedId] || `Lenguaje ID ${parsedId}`;
+};
+
+// Función para obtener la extensión de lenguaje
+const getLanguageExtension = (languageId) => {
+  const langFunc = languageMap[languageId];
+  if (langFunc) {
+    return langFunc();
+  }
+  // Por defecto, usar Python si no se encuentra el lenguaje
+  return python();
 };
 
 export default {
@@ -79,6 +167,42 @@ export default {
 
     const editorInstance = ref(null);
     
+    // Estado para el lenguaje actual
+    const currentLanguageId = ref(71); // Python por defecto
+
+    const getLanguageName = (langId) => {
+      const parsedId = parseInt(langId);
+
+      // Mapa de IDs a nombres de lenguaje
+      const languageNames = {
+        71: 'Python 3',
+        70: 'Python 2',
+        63: 'JavaScript',
+        62: 'Java',
+        54: 'C++',
+        53: 'C++ (GCC 8.3.0)',
+        52: 'C++ (GCC 7.4.0)',
+        50: 'C',
+        49: 'C (GCC 8.3.0)',
+        48: 'C (GCC 7.4.0)',
+        74: 'TypeScript',
+        73: 'Rust',
+        60: 'Go',
+        68: 'PHP'
+      };
+
+      // Intentar obtener desde availableLanguages si existe
+      if (availableLanguages.value && availableLanguages.value.length > 0) {
+        const lang = availableLanguages.value.find(l => l.id === parsedId);
+        if (lang) return lang.name;
+      }
+
+      // Sino, usar el mapa predefinido
+      return languageNames[parsedId] || `Lenguaje ID ${parsedId}`;
+    };
+
+    
+    
     // Obtener contexto de ejercicios
     const exercises = inject('exercises', ref([]));
     const currentExerciseIndex = inject('currentExerciseIndex', ref(0));
@@ -86,6 +210,79 @@ export default {
     
     // Computar el ejercicio actual
     const currentExercise = ref(null);
+    
+    // NUEVO: Función para cargar el lenguaje seleccionado desde localStorage
+    const loadSelectedLanguage = () => {
+      try {
+        const savedLanguage = localStorage.getItem('selected_language_id');
+        if (savedLanguage) {
+          const langId = parseInt(savedLanguage);
+          if (langId && langId !== currentLanguageId.value) {
+            console.log(`Cargando lenguaje desde localStorage: ID ${langId}`);
+            currentLanguageId.value = langId;
+            return true;
+          }
+        }
+      } catch (e) {
+        console.warn('Error al cargar lenguaje desde localStorage:', e);
+      }
+      return false;
+    };
+
+    // Watcher para detectar cambios en el lenguaje seleccionado
+    const watchLanguageChanges = () => {
+      // Polling para detectar cambios en localStorage
+      const checkLanguageChange = () => {
+        try {
+          if (isHistoryMode.value) {
+            return;
+          }
+
+          const savedLanguage = localStorage.getItem('selected_language_id');
+          if (savedLanguage) {
+            const langId = parseInt(savedLanguage);
+            if (langId && langId !== currentLanguageId.value) {
+              console.log(`Cambio de lenguaje detectado: ${currentLanguageId.value} -> ${langId}`);
+              currentLanguageId.value = langId;
+
+              // Recrear editor con nuevo lenguaje
+              if (editor.value && editorInitialized.value) {
+                const currentContent = editor.value.state.doc.toString();
+
+                // Importante: Si el contenido es una plantilla por defecto o está vacío,
+                // cargar la plantilla específica para el nuevo lenguaje
+                const isDefaultTemplate = isDefaultTemplateContent(currentContent);
+
+                if (isDefaultTemplate) {
+                  console.log("Detectada plantilla por defecto, cargando plantilla para nuevo lenguaje");
+                  nextTick(() => {
+                    if (currentExercise.value) {
+                      loadCodeFromLocalStorage(currentExercise.value.id);
+                    } else {
+                      recreateEditor(currentContent);
+                    }
+                  });
+                } else {
+                  nextTick(() => {
+                    recreateEditor(currentContent);
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Error al verificar cambio de lenguaje:', e);
+        }
+      };
+
+      // Verificar cada 500ms
+      const languageInterval = setInterval(checkLanguageChange, 500);
+
+      // Limpiar al desmontar
+      onBeforeUnmount(() => {
+        clearInterval(languageInterval);
+      });
+    };
     
     // Verificar el modo historia para decidir si guardar o no
     const shouldSaveCode = computed(() => {
@@ -130,6 +327,11 @@ export default {
         console.log('Guardando código con clave:', codeKey);
         localStorage.setItem(codeKey, currentCode);
 
+        // NUEVO: Guardar también el lenguaje seleccionado para este ejercicio
+        const languageKey = `exercise_language_${getCurrentUserId()}_${getEvaluationId()}_${id}`;
+        localStorage.setItem(languageKey, currentLanguageId.value.toString());
+        console.log(`Guardado lenguaje ${currentLanguageId.value} para ejercicio ${id}`);
+
         // Mostrar icono de guardado
         showSaveNotification.value = true;
         if (saveTimeoutId.value) clearTimeout(saveTimeoutId.value);
@@ -168,10 +370,34 @@ export default {
       if (!id) return false;
 
       try {
-        // Usar la clave consistente con PracticalRightPanel
+        // EN MODO HISTORIAL: usar el código directamente del ejercicio
+        if (isHistoryMode.value && currentExercise.value && currentExercise.value.codigo) {
+          console.log('📚 Modo historial: cargando código desde ejercicio');
+          setContent(currentExercise.value.codigo);
+          return true;
+        }
+
+        // MODO NORMAL: usar localStorage
         const codeKey = getExerciseCodeKey(id);
         console.log('Buscando código con clave:', codeKey);
         const savedCode = localStorage.getItem(codeKey);
+
+        // Cargar lenguaje guardado para este ejercicio (solo si NO es modo historial)
+        if (!isHistoryMode.value) {
+          const languageKey = `exercise_language_${getCurrentUserId()}_${getEvaluationId()}_${id}`;
+          const savedLanguage = localStorage.getItem(languageKey);
+
+          if (savedLanguage) {
+            const langId = parseInt(savedLanguage);
+            console.log(`Cargando lenguaje guardado para ejercicio ${id}: ${langId}`);
+
+            // Actualizar lenguaje actual y localStorage general
+            currentLanguageId.value = langId;
+            localStorage.setItem('selected_language_id', langId.toString());
+          } else {
+            console.log(`No hay lenguaje guardado para ejercicio ${id}, manteniendo actual: ${currentLanguageId.value}`);
+          }
+        }
 
         if (savedCode) {
           console.log('Código encontrado:', savedCode.length, 'caracteres');
@@ -179,46 +405,57 @@ export default {
           return true;
         }
 
-        // Si no hay código guardado, usar template
-        if (currentExercise.value) {
-          // Buscar plantilla en diferentes lugares y simplificar la lógica
+        // Si no hay código guardado Y NO estamos en modo historial, buscar plantilla
+        if (!isHistoryMode.value && currentExercise.value) {
           let template = '';
+          let templateFound = false;
 
-          // Prioridad 1: Campo template directo
-          if (currentExercise.value.template) {
-            template = currentExercise.value.template;
-          }
-          // Prioridad 2: Template en contenido (objeto)
-          else if (currentExercise.value.contenido &&
-            typeof currentExercise.value.contenido === 'object' &&
-            currentExercise.value.contenido.template) {
-            template = currentExercise.value.contenido.template;
-          }
-          // Prioridad 3: Template en contenido (string JSON)
-          else if (currentExercise.value.contenido &&
-            typeof currentExercise.value.contenido === 'string') {
-            try {
-              const parsed = JSON.parse(currentExercise.value.contenido);
-              if (parsed.template) template = parsed.template;
-            } catch (e) { } // Ignorar errores de parseo
-          }
+          console.log('Ejercicio actual:', currentExercise.value);
+          console.log('Estructura del ejercicio:', Object.keys(currentExercise.value));
 
-          // Si encontramos template, usarlo
-          if (template) {
-            setContent(template);
+          // Buscar en templates_por_lenguaje directamente en el ejercicio
+          if (!templateFound && currentExercise.value.templates_por_lenguaje) {
+            const langIdStr = String(currentLanguageId.value);
 
-            // Guardar como código inicial, solo si no es modo solo lectura
-            if (!props.readOnly && !isHistoryMode.value) {
-              saveCodeToLocalStorage(id);
+            console.log('Buscando en templates_por_lenguaje del ejercicio');
+            console.log('Templates disponibles:', currentExercise.value.templates_por_lenguaje);
+
+            if (currentExercise.value.templates_por_lenguaje[langIdStr]) {
+              template = currentExercise.value.templates_por_lenguaje[langIdStr];
+              templateFound = true;
+              console.log(`Plantilla encontrada en templates_por_lenguaje para lenguaje ID ${currentLanguageId.value}`);
             }
-            return true;
           }
 
-          // Plantilla por defecto como último recurso
-          const defaultTemplate = generateDefaultTemplate(currentExercise.value);
-          setContent(defaultTemplate);
-          
-          // Guardar solo si no es modo solo lectura
+          // Si no se encontró en templates_por_lenguaje, buscar en contenido.templates
+          if (!templateFound && currentExercise.value.contenido) {
+            const contenido = typeof currentExercise.value.contenido === 'object'
+              ? currentExercise.value.contenido
+              : {};
+
+            console.log('Buscando en contenido.templates');
+
+            if (contenido.templates && typeof contenido.templates === 'object') {
+              const langIdStr = String(currentLanguageId.value);
+
+              if (contenido.templates[langIdStr]) {
+                template = contenido.templates[langIdStr];
+                templateFound = true;
+                console.log(`Plantilla específica para lenguaje ID ${currentLanguageId.value} encontrada en contenido.templates`);
+              }
+            }
+          }
+
+          // Si no se encuentra ninguna plantilla, generar por defecto según el lenguaje
+          if (!templateFound) {
+            template = generateDefaultTemplate(currentExercise.value);
+            console.log('Usando plantilla por defecto generada');
+          }
+
+          // Establecer la plantilla
+          setContent(template);
+
+          // Guardar como código inicial, solo si no es modo solo lectura
           if (!props.readOnly && !isHistoryMode.value) {
             saveCodeToLocalStorage(id);
           }
@@ -260,30 +497,24 @@ export default {
     
     // Generar una plantilla por defecto
     const generateDefaultTemplate = (exercise) => {
-      let template = '# ' + (exercise.titulo || 'Ejercicio') + '\n\n';
-      
-      // Añadir descripción como comentario
-      if (exercise.descripcion) {
-        const descripcionLines = exercise.descripcion.split('\n');
-        for (const line of descripcionLines.slice(0, 3)) { // Limitar a 3 líneas
-          template += '# ' + line + '\n';
-        }
-        template += '\n';
-      }
-      
-      // Plantilla según tipo
-      if (exercise.tipo === 'practico') {
-        template += 'def solucion():\n';
-        template += '    # Tu código aquí\n';
-        template += '    return\n\n';
-        template += '# No modifiques esta parte\n';
-        template += 'if __name__ == "__main__":\n';
-        template += '    print(solucion())\n';
-      } else {
-        template += '# Tu código aquí\n';
-      }
-      
-      return template;
+      // Para cualquier lenguaje (incluido Python) solo mostrar un mensaje informativo
+      const langName = getLanguageName(currentLanguageId.value);
+      return `# No hay plantilla específica para ${langName} en este ejercicio\n# Por favor, implementa tu solución aquí`;
+    };
+
+    // Función auxiliar para detectar si el contenido es una plantilla por defecto
+    const isDefaultTemplateContent = (content) => {
+      if (!content || content.trim() === '') return true;
+
+      // Patrones que indican plantillas por defecto
+      const defaultPatterns = [
+        /No hay plantilla específica para .* en este ejercicio/,
+        /Por favor, implementa tu solución aquí/,
+        /Tu código aquí/,
+        /print\("Hello, World!"\)/
+      ];
+
+      return defaultPatterns.some(pattern => pattern.test(content));
     };
 
     // Métodos para manipular el editor
@@ -361,7 +592,11 @@ export default {
 
     // Enfocar el editor solo si no es de solo lectura
     const focusEditorIfNotReadOnly = () => {
-      if (!props.readOnly && !isHistoryMode.value && editor.value) {
+      // No hacer nada si está en modo solo lectura - permite que el scroll funcione naturalmente
+      if (props.readOnly || isHistoryMode.value) {
+        return;
+      }
+      if (editor.value) {
         editor.value.focus();
       }
     };
@@ -373,14 +608,19 @@ export default {
       }
     };
 
-    // Crear extensiones para CodeMirror con tema actual
+    // MODIFICAR: Función createEditorExtensions para usar el lenguaje dinámico
     const createEditorExtensions = () => {
       // Obtener el tema seleccionado
       const themeExtension = themes[props.theme] || dracula;
       
+      // NUEVO: Obtener extensión de lenguaje basada en ID actual
+      const languageExtension = getLanguageExtension(currentLanguageId.value);
+      
+      console.log(`Creando editor con lenguaje ID: ${currentLanguageId.value}`);
+      
       const extensions = [
         basicSetup,
-        python(),
+        languageExtension, // CAMBIADO: usar extensión dinámica en lugar de python()
         themeExtension,
         autocompletion(),
         keymap.of([indentWithTab]),
@@ -456,6 +696,37 @@ export default {
       }, 1000); // Reducido a 1 segundo
     };
 
+    // Watcher para cambios en el lenguaje actual
+    watch(currentLanguageId, (newLangId, oldLangId) => {
+      console.log(`Lenguaje cambió de ${oldLangId} a ${newLangId}`);
+
+      if (editor.value && editorInitialized.value && newLangId !== oldLangId) {
+        // Verificar si hay código ya guardado para este lenguaje
+        const exerciseId = currentExercise.value?.id;
+        if (exerciseId) {
+          const codeKey = getExerciseCodeKey(exerciseId);
+          const savedCode = localStorage.getItem(codeKey);
+
+          if (!savedCode && !props.readOnly && !isHistoryMode.value) {
+            // Si no hay código guardado, cargar la plantilla para el nuevo lenguaje
+            loadCodeFromLocalStorage(exerciseId);
+          } else {
+            // Si hay código guardado o estamos en modo solo lectura, solo actualizamos el editor
+            const currentContent = editor.value.state.doc.toString();
+            nextTick(() => {
+              recreateEditor(currentContent);
+            });
+          }
+        } else {
+          // Si no hay ejercicio actual, solo actualizamos el editor
+          const currentContent = editor.value.state.doc.toString();
+          nextTick(() => {
+            recreateEditor(currentContent);
+          });
+        }
+      }
+    });
+
     // Actualizar ejercicio actual basado en el índice
     watch([exercises, currentExerciseIndex], ([newExercises, newIndex], [oldExercises, oldIndex]) => {
       console.log(`Cambio detectado - ejercicios: ${newExercises?.length}, índice: ${newIndex}`);
@@ -527,10 +798,11 @@ export default {
     });
     
     // Exponemos métodos para componentes padres
-    expose({ 
-      setContent, 
-      getContent, 
+    expose({
+      setContent,
+      getContent,
       focusEditor,
+      loadCodeFromLocalStorage,
       isInitialized: () => editorInitialized.value,
       saveCurrentCode: () => {
         // Solo guardar si no es modo solo lectura
@@ -539,16 +811,24 @@ export default {
         }
         return false;
       },
-      // Agregar método para verificar si está en modo solo lectura
-      isReadOnly: () => props.readOnly || isHistoryMode.value
+      isReadOnly: () => props.readOnly || isHistoryMode.value,
+      getCurrentLanguage: () => currentLanguageId.value
     });
 
+    // MODIFICAR: onMounted para inicializar lenguaje
     onMounted(() => {
+      // NUEVO: Cargar lenguaje seleccionado
+      loadSelectedLanguage();
+      
+      // NUEVO: Inicializar watcher de cambios de lenguaje
+      watchLanguageChanges();
+      
       // Inicializar editor
       nextTick(() => {
         try {
           console.log("Inicializando editor...");
           console.log("Modo solo lectura:", props.readOnly || isHistoryMode.value);
+          console.log("Lenguaje inicial:", currentLanguageId.value);
           
           // Crear estado inicial
           const startState = EditorState.create({
@@ -621,11 +901,31 @@ export default {
       });
     });
 
+    // Función helper para obtener ID de usuario
+    const getCurrentUserId = () => {
+      return localStorage.getItem('user_id') || 'anonymous';
+    };
+
+    // Función helper para obtener ID de evaluación
+    const getEvaluationId = () => {
+      const evalData = localStorage.getItem('currentEvaluation');
+      try {
+        const parsedEvaluation = JSON.parse(evalData);
+        return parsedEvaluation?.id || 'unknown';
+      } catch (e) {
+        return 'unknown';
+      }
+    };
+
     return {
       editorContainer,
       content,
       showSaveNotification,
-      focusEditorIfNotReadOnly
+      focusEditorIfNotReadOnly,
+      currentLanguageId,
+      isDefaultTemplateContent,
+      getCurrentUserId,
+      getEvaluationId
     };
   }
 };
@@ -758,7 +1058,7 @@ export default {
   }
 }
 
-/* Estilos mejorados para modo solo lectura */
+/* Estilos para modo solo lectura */
 .read-only {
   position: relative;
 }
@@ -771,13 +1071,22 @@ export default {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.15); /* Overlay más notorio */
-  pointer-events: all; /* Importante: intercepta todos los eventos */
+  pointer-events: none; /* permite que el scroll pase a través */
   z-index: 50; /* Mayor z-index para asegurar que está por encima */
   cursor: not-allowed; /* Cursor que indica que no se puede editar */
 }
 
 .read-only :deep(.cm-editor) {
   opacity: 0.8; /* Ligera transparencia para indicar estado inactivo */
+  pointer-events: auto; /* permite interacción con el scroll */
+}
+
+.read-only :deep(.cm-content) {
+  pointer-events: none; /* bloquea edición del contenido */
+}
+
+.read-only :deep(.cm-scroller) {
+  pointer-events: auto; /* permite scroll */
 }
 
 .read-only :deep(.cm-cursor) {

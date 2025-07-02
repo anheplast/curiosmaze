@@ -66,7 +66,9 @@ const judge0Service = {
    * @param {string} language - Lenguaje de programación (por defecto 'python')
    * @returns {Promise<Object>} - Resultado de la ejecución
    */
-  async executeCode(sourceCode, input = "", expectedOutput = "", language = "python") {
+  async executeCode(sourceCode, input = "", expectedOutput = "", languageId = 71) {
+    console.log(`Ejecutando código con lenguaje ID: ${languageId}`);
+
     try {
       // Verificar disponibilidad primero
       const availability = await this.checkAvailability();
@@ -78,12 +80,12 @@ const judge0Service = {
         };
       }
 
-      console.log(`Ejecutando código (${sourceCode.length} caracteres) con lenguaje: ${language}`);
+      console.log(`Ejecutando código (${sourceCode.length} caracteres) con lenguaje ID: ${languageId}`);
 
       // Crear objeto de envío
       const submission = {
         source_code: sourceCode,
-        language_id: LANGUAGE_IDS[language] || 71, // Python por defecto
+        language_id: languageId, // Usar el ID proporcionado
         stdin: input,
         expected_output: expectedOutput,
         ...DEFAULT_EXECUTION_OPTIONS,
@@ -101,7 +103,7 @@ const judge0Service = {
       const token = createResponse.data.token;
       console.log(`Token recibido: ${token}`);
 
-      // Esperar resultado 
+      // Esperar resultado
       const result = await this.waitForResult(token);
       console.log(`Resultado recibido para token ${token}:`, result.status?.description);
 
@@ -363,8 +365,8 @@ const judge0Service = {
    * @param {Array} ejemplos - Array de ejemplos con formato {entrada, salida}
    * @returns {Promise<Object>}
    */
-  async verificarEjemplos(code, ejemplos) {
-    console.log("Verificando", ejemplos?.length || 0, "ejemplos");
+  async verificarEjemplos(code, ejemplos, languageId = 71) {
+    console.log("Verificando", ejemplos?.length || 0, "ejemplos con lenguaje ID:", languageId);
 
     if (!ejemplos || !Array.isArray(ejemplos) || ejemplos.length === 0) {
       return {
@@ -391,7 +393,7 @@ const judge0Service = {
 
         try {
           // Ejecutar con Judge0
-          const result = await this.executeCode(code, entrada, salidaEsperada);
+          const result = await this.executeCode(code, entrada, salidaEsperada, languageId);
 
           // Obtener la salida real
           const salidaReal = (result.stdout || "").trim();

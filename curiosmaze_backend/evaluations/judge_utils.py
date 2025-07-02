@@ -555,13 +555,14 @@ def verificar_ejemplos(codigo, ejemplos):
         }
 
 
-def ejecutar_tests_avanzados(codigo, tests_codigo):
+def ejecutar_tests_avanzados(codigo, tests_codigo, language_id=71):
     """
     Ejecuta tests avanzados para un código
     
     Args:
         codigo (str): Código fuente a evaluar
-        tests_codigo (str): Código de pruebas
+        tests_codigo (str or dict): Código de pruebas o diccionario de tests por lenguaje
+        language_id (int, optional): ID del lenguaje (por defecto: 71, Python)
         
     Returns:
         dict: Resultado de los tests
@@ -573,7 +574,35 @@ def ejecutar_tests_avanzados(codigo, tests_codigo):
         }
     
     try:
-        # Verificar si las funciones auxiliares ya están incluidas
+        # Si tests_codigo es un diccionario, obtener el test para el lenguaje seleccionado
+        if isinstance(tests_codigo, dict):
+            language_id_str = str(language_id)
+            if language_id_str in tests_codigo:
+                tests_codigo = tests_codigo[language_id_str]
+            elif '71' in tests_codigo:  # Fallback a Python
+                tests_codigo = tests_codigo['71']
+                logger.info(f"No hay tests para el lenguaje {language_id}, usando tests de Python como alternativa")
+            else:
+                # Si no hay tests para este lenguaje ni para Python, usar el primer test disponible
+                for lang_id, test in tests_codigo.items():
+                    if test:
+                        tests_codigo = test
+                        logger.info(f"No hay tests para el lenguaje {language_id}, usando tests de {lang_id} como alternativa")
+                        break
+                else:
+                    return {
+                        'success': False,
+                        'message': f'No hay tests para el lenguaje {language_id}',
+                    }
+        
+        # Verificar si hay código de prueba
+        if not tests_codigo:
+            return {
+                'success': False,
+                'message': 'No hay código de pruebas para este lenguaje',
+            }
+        
+        # Añadir funciones auxiliares si es necesario, adaptadas por lenguaje
         codigo_helper = """
 # Función auxiliar para ejecutar pruebas avanzadas
 def ejecutar_tests_avanzados(func, casos_prueba, mostrar_detalle=True):
@@ -615,15 +644,118 @@ def test(actual, expected, message=""):
         print(f"  Obtenido: {actual}")
 """
         
-        # Combinar el código solo si es necesario
-        if 'def ejecutar_tests_avanzados' not in tests_codigo and 'def test(' not in tests_codigo:
-            tests_codigo = codigo_helper + tests_codigo
+        # Para Python
+        if language_id == 71 and 'def ejecutar_tests_avanzados' not in tests_codigo and 'def test(' not in tests_codigo:
+            tests_codigo = codigo_helper + "\n\n" + tests_codigo
+        # Para JavaScript
+        elif language_id == 63 and 'function ejecutarTestsAvanzados' not in tests_codigo and 'function test(' not in tests_codigo:
+            javascript_helper = """
+// Función auxiliar para ejecutar pruebas avanzadas
+function ejecutarTestsAvanzados(func, casosPrueba, mostrarDetalle = true) {
+    let pruebasPasadas = 0;
+    const totalPruebas = casosPrueba.length;
+    
+    console.log(`Ejecutando ${totalPruebas} pruebas:`);
+    
+    for (let i = 0; i < casosPrueba.length; i++) {
+        try {
+            const [entrada, esperado] = casosPrueba[i];
+            let resultado;
+            
+            // Si la entrada es un array, usar spread operator
+            if (Array.isArray(entrada)) {
+                resultado = func(...entrada);
+            } else {
+                resultado = func(entrada);
+            }
+            
+            if (JSON.stringify(resultado) === JSON.stringify(esperado)) {
+                pruebasPasadas++;
+                if (mostrarDetalle) {
+                    console.log(`✓ CORRECTO - Prueba ${i+1}: con entrada ${JSON.stringify(entrada)} se obtuvo ${JSON.stringify(resultado)}`);
+                }
+            } else {
+                if (mostrarDetalle) {
+                    console.log(`✗ INCORRECTO - Prueba ${i+1}: con entrada ${JSON.stringify(entrada)}`);
+                    console.log(`  Se esperaba: ${JSON.stringify(esperado)}`);
+                    console.log(`  Se obtuvo: ${JSON.stringify(resultado)}`);
+                }
+            }
+        } catch (e) {
+            if (mostrarDetalle) {
+                console.log(`✗ ERROR - Prueba ${i+1}: con entrada ${JSON.stringify(casosPrueba[i][0])}`);
+                console.log(`  Error: ${e.message}`);
+            }
+        }
+    }
+    
+    console.log(`Resultado: ${pruebasPasadas}/${totalPruebas} pruebas pasadas`);
+    return pruebasPasadas;
+}
+
+// Función auxiliar para pruebas individuales
+function test(actual, expected, message = "") {
+    if (JSON.stringify(actual) === JSON.stringify(expected)) {
+        console.log(`✓ CORRECTO: ${message}`);
+        return true;
+    } else {
+        console.log(`✗ INCORRECTO: ${message}`);
+        console.log(`  Esperado: ${JSON.stringify(expected)}`);
+        console.log(`  Obtenido: ${JSON.stringify(actual)}`);
+        return false;
+    }
+}
+"""
+            tests_codigo = javascript_helper + "\n\n" + tests_codigo
+        # Para Java
+        elif language_id == 62 and 'class TestRunner' not in tests_codigo:
+            # Si el código Java no tiene una clase TestRunner principal
+            if 'public static void main' not in tests_codigo and not tests_codigo.strip().startswith('public class'):
+                java_helper = """
+// Clase auxiliar para ejecutar pruebas
+public class TestRunner {
+    public static void main(String[] args) {
+        // El código de prueba debe estar debajo de esta línea
+        System.out.println("Ejecutando pruebas...");
+        
+        // Declaración para registro de resultados
+        int resultadoTests = 0;
+        int totalTests = 0;
+"""
+
+                closing_code = """
+        // Mostrar resumen de resultados
+        System.out.println("Resultado: " + resultadoTests + "/" + totalTests + " pruebas pasadas");
+    }
+    
+    // Función auxiliar para pruebas
+    public static boolean test(Object actual, Object expected, String message) {
+        if (actual.equals(expected)) {
+            System.out.println("✓ CORRECTO: " + message);
+            return true;
+        } else {
+            System.out.println("✗ INCORRECTO: " + message);
+            System.out.println("  Esperado: " + expected);
+            System.out.println("  Obtenido: " + actual);
+            return false;
+        }
+    }
+}"""
+
+                tests_codigo = java_helper + "\n\n" + tests_codigo + "\n\n" + closing_code
         
         # Combinar código estudiante con tests
         codigo_completo = codigo + "\n\n" + tests_codigo
         
+        # Convertir ID de lenguaje a nombre
+        language_name = 'python'  # Por defecto
+        for name, id in LANGUAGE_IDS.items():
+            if id == language_id:
+                language_name = name
+                break
+        
         # Ejecutar código combinado
-        result = ejecutar_codigo(codigo_completo)
+        result = ejecutar_codigo(codigo_completo, language=language_name)
         
         # Analizar salida para extraer resultados
         output = result.get('stdout', '')

@@ -5,7 +5,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.1.1-blue" alt="Version">
-  <img src="https://img.shields.io/badge/License-AGPL%20v3.0-blue.svg" alt="License: AGPL v3.0">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
   <img src="https://img.shields.io/badge/Vue.js-3.x-42b883" alt="Vue 3">
   <img src="https://img.shields.io/badge/Django-REST-ff1709" alt="Django">
   <img src="https://img.shields.io/badge/Judge0-API-5b5ff9" alt="Judge0">
@@ -35,50 +35,37 @@ La plataforma está construida siguiendo una arquitectura cliente-servidor:
 - Node.js 14+
 - Judge0 (instalado en un servidor separado)
 
-### Configuración del Backend
 
-```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/curiosmaze.git
-cd curiosmaze/curiosmaze_backend
+## 📷 Capturas de CURIOSMAZE
 
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+Algunas capturas de la plataforma en funcionamiento.
 
-# Instalar dependencias
-pip install -r requirements.txt
+<details>
+<summary><strong>Capturas</strong></summary>
 
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus configuraciones
+![captura](./img/screenshots/captura1.png)
+![captura](./img/screenshots/captura2.png)
+![captura](./img/screenshots/captura3.png)
+![captura](./img/screenshots/captura4.png)
+![captura](./img/screenshots/captura5.png)
+![captura](./img/screenshots/captura6.png)
+![captura](./img/screenshots/captura7.png)
+![captura](./img/screenshots/captura8.png)
+![captura](./img/screenshots/captura9.png)
 
-# Migraciones
-python manage.py migrate
+</details>
 
-# Crear superusuario
-python manage.py createsuperuser
 
-# Ejecutar servidor
-python manage.py runserver
-```
+## ⚙️ Archivos de inicio y configuración
 
-### Configuración del Frontend
+A continuación se describen los scripts incluidos para facilitar la configuración y ejecución del proyecto en entornos de desarrollo:
 
-```bash
-# Navegar al directorio frontend
-cd ../frontend
-
-# Instalar dependencias
-npm install
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus configuraciones
-
-# Ejecutar en modo desarrollo
-npm run dev
-```
+| Archivo | Descripción |
+|--------|-------------|
+| `dev-start.bat` | Este script configura e inicia **CURIOSMAZE** en modo desarrollo, ejecutando el servidor backend y el frontend por separado. |
+| `setup-curiosmaze.bat` | Script de configuración automática que realiza lo siguiente:<br> &nbsp;&nbsp;• Crea archivos `.env` para el frontend y backend<br> &nbsp;&nbsp;• Instala dependencias de Node.js<br> &nbsp;&nbsp;• Construye el frontend (`dist/`)<br> &nbsp;&nbsp;• Configura el entorno del backend (entorno virtual, instalación de dependencias)<br> &nbsp;&nbsp;• Ejecuta migraciones de Django. |
+| `start-curiosmaze.bat` | Inicia automáticamente el servidor **frontend** y el **backend**. |
+| `verify-curiosmaze.bat` | Verifica que la plataforma esté correctamente configurada. |
 
 ### Configuración de Judge0
 
@@ -95,29 +82,3 @@ CURIOSMAZE implementa un sistema de autenticación basado en roles:
 - **Docente**: Creación de evaluaciones, gestión de estudiantes, revisión de resultados
 - **Estudiante**: Acceso a evaluaciones, realización de ejercicios, visualización de resultados
 
-## 📝 Licencia
-
-Este proyecto está licenciado bajo la **GNU Affero General Public License v3.0** (AGPL-3.0).
-
-**Derechos y condiciones**:
-- ✅ Uso, distribución y modificación permitidos.
-- ✅ Todo trabajo derivado debe mantenerse bajo la misma licencia AGPL-3.0.
-- ✅ Si se ofrece este software como servicio web, también se debe proveer el código fuente.
-- ❌ No está permitido el uso con fines comerciales sin autorización expresa del autor.
-
-Consulta el texto completo de la licencia [aquí](https://github.com/anheplast/curiosmaze/blob/main/LICENSE).
-
-### Nota sobre Judge0
-
-CURIOSMAZE utiliza Judge0 como sistema externo para la ejecución de código. Judge0 está licenciado bajo la GNU General Public License v3.0 (GPL-3.0).
-No se ha modificado el código fuente de Judge0 y se utiliza exclusivamente como un servicio separado autoalojado.
-
-## 🎓 Proyecto de Tesis
-
-CURIOSMAZE es un proyecto desarrollado como parte de una tesis académica para la Unidad Educativa Juan Pablo II, con el objetivo de mejorar la enseñanza de programación en estudiantes de bachillerato mediante herramientas tecnológicas interactivas.
-
----
-
-<p align="center">
-  © 2025 Martin Mayanquer. Todos los derechos reservados bajo los términos de la AGPL v3.0.
-</p>

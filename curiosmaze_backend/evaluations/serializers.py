@@ -1,6 +1,7 @@
 # curiosmaze_backend/evaluations/serializers.py
 from rest_framework import serializers
-from users.models import User, UserProfile  # Importar ambos modelos
+import json
+from users.models import User, UserProfile 
 from .models import (
     Curso, Ejercicio, Evaluacion, EvaluacionEjercicio,
     EstudianteEvaluacion, RespuestaEjercicio, AjustePuntaje
@@ -63,12 +64,13 @@ class EjercicioSerializer(serializers.ModelSerializer):
     """
     creador_nombre = serializers.SerializerMethodField()
     etiquetas = serializers.SerializerMethodField()
+    templates_por_lenguaje = serializers.SerializerMethodField()
     
     class Meta:
         model = Ejercicio
         fields = ['id', 'titulo', 'descripcion', 'tipo', 'dificultad', 'credito',
                  'contenido', 'puntaje', 'creador', 'creador_nombre', 
-                 'fecha_creacion', 'tests_avanzados', 'etiquetas']
+                 'fecha_creacion', 'tests_avanzados', 'etiquetas', 'templates_por_lenguaje']
         read_only_fields = ['id', 'creador', 'creador_nombre', 'fecha_creacion']
     
     def get_creador_nombre(self, obj):
@@ -82,9 +84,47 @@ class EjercicioSerializer(serializers.ModelSerializer):
         """Extrae las etiquetas del campo contenido"""
         return obj.get_etiquetas()  # Usar el método helper
     
+    
+    def get_templates_por_lenguaje(self, obj):
+        """
+        Extrae las plantillas por lenguaje del campo contenido
+        VERSIÓN CORREGIDA con mejor manejo de errores
+        """
+        try:
+            # Primero intentar desde la propiedad del modelo
+            if hasattr(obj, 'templates_por_lenguaje'):
+                templates_desde_modelo = obj.templates_por_lenguaje
+                if templates_desde_modelo and isinstance(templates_desde_modelo, dict):
+                    print(f"🔧 Serializador: Templates desde modelo para ejercicio {obj.id}: {templates_desde_modelo}")
+                    return templates_desde_modelo
+            
+            # Si no, buscar en el contenido directamente
+            if obj.contenido:
+                contenido = obj.contenido
+                if isinstance(contenido, str):
+                    try:
+                        contenido = json.loads(contenido)
+                    except json.JSONDecodeError:
+                        print(f"❌ Error al parsear contenido JSON para ejercicio {obj.id}")
+                        return {}
+                
+                if isinstance(contenido, dict) and 'templates' in contenido:
+                    templates = contenido.get('templates', {})
+                    if isinstance(templates, dict):
+                        print(f"🔧 Serializador: Templates desde contenido para ejercicio {obj.id}: {templates}")
+                        return templates
+            
+            print(f"⚠️ Serializador: No se encontraron templates para ejercicio {obj.id}")
+            return {}
+            
+        except Exception as e:
+            print(f"❌ Error en get_templates_por_lenguaje para ejercicio {obj.id}: {str(e)}")
+            return {}
+    
+
     def create(self, validated_data):
         """
-        Guarda las etiquetas en el contenido al crear un ejercicio
+        Guarda las etiquetas y templates por lenguaje en el contenido al crear un ejercicio
         """
         # Asegurarnos de que contenido sea un diccionario
         contenido = validated_data.get('contenido', {}) or {}
@@ -94,29 +134,37 @@ class EjercicioSerializer(serializers.ModelSerializer):
             except:
                 contenido = {}
         
-        # Obtener etiquetas enviadas por el cliente
+        # Obtener datos enviados por el cliente
         request = self.context.get('request')
         if request and hasattr(request, 'data'):
-            etiquetas = request.data.get('etiquetas', None)
-            
-            # Log para depuración
-            print(f"Etiquetas recibidas en create: {etiquetas}")
-            
-            # Si tenemos etiquetas, guardarlas en el contenido
-            if etiquetas is not None:
-                # Asegurar formato de lista
-                if isinstance(etiquetas, str):
+            # Procesar templates por lenguaje
+            templates_por_lenguaje = request.data.get('templates_por_lenguaje', None)
+            if templates_por_lenguaje is not None:
+                # Convertir a diccionario si es string
+                if isinstance(templates_por_lenguaje, str):
                     try:
-                        etiquetas = json.loads(etiquetas)
+                        templates_por_lenguaje = json.loads(templates_por_lenguaje)
                     except:
-                        etiquetas = [etiquetas]
-                elif not isinstance(etiquetas, list):
-                    etiquetas = [str(etiquetas)]
+                        templates_por_lenguaje = {}
                 
-                # Guardar etiquetas en el contenido
-                contenido['etiquetas'] = etiquetas
-                validated_data['contenido'] = contenido
-                print(f"Etiquetas guardadas en contenido: {etiquetas}")
+                # Guardar templates en el contenido
+                contenido['templates'] = templates_por_lenguaje
+                
+            # Procesar tests avanzados por lenguaje
+            tests_por_lenguaje = request.data.get('tests_por_lenguaje', None)
+            if tests_por_lenguaje is not None:
+                # Convertir a diccionario si es string
+                if isinstance(tests_por_lenguaje, str):
+                    try:
+                        tests_por_lenguaje = json.loads(tests_por_lenguaje)
+                    except:
+                        tests_por_lenguaje = {}
+                
+                # Guardar en tests_avanzados
+                validated_data['tests_avanzados'] = tests_por_lenguaje
+            
+            # Actualizar contenido
+            validated_data['contenido'] = contenido
         
         # Usar el creador del contexto
         user = self.context.get('request').user if self.context.get('request') else None
@@ -124,10 +172,10 @@ class EjercicioSerializer(serializers.ModelSerializer):
             validated_data['creador'] = user
         
         return super().create(validated_data)
-    
+
     def update(self, instance, validated_data):
         """
-        Actualiza las etiquetas en el contenido al modificar un ejercicio
+        Actualiza las etiquetas y templates por lenguaje al modificar un ejercicio
         """
         # Obtener contenido existente
         contenido = validated_data.get('contenido', instance.contenido) or {}
@@ -137,42 +185,96 @@ class EjercicioSerializer(serializers.ModelSerializer):
             except:
                 contenido = {}
         
-        # Obtener etiquetas enviadas por el cliente
+        # Obtener datos enviados por el cliente
         request = self.context.get('request')
         if request and hasattr(request, 'data'):
-            etiquetas = request.data.get('etiquetas', None)
-            
-            # Log para depuración
-            print(f"Etiquetas recibidas en update: {etiquetas}")
-            
-            # Si tenemos etiquetas, actualizarlas en el contenido
-            if etiquetas is not None:
-                # Asegurar formato de lista
-                if isinstance(etiquetas, str):
+            # Procesar templates por lenguaje
+            templates_por_lenguaje = request.data.get('templates_por_lenguaje', None)
+            if templates_por_lenguaje is not None:
+                # Convertir a diccionario si es string
+                if isinstance(templates_por_lenguaje, str):
                     try:
-                        etiquetas = json.loads(etiquetas)
+                        templates_por_lenguaje = json.loads(templates_por_lenguaje)
                     except:
-                        etiquetas = [etiquetas]
-                elif not isinstance(etiquetas, list):
-                    etiquetas = [str(etiquetas)]
+                        templates_por_lenguaje = {}
                 
-                # Guardar etiquetas en el contenido
-                contenido['etiquetas'] = etiquetas
-                validated_data['contenido'] = contenido
-                print(f"Etiquetas actualizadas en contenido: {etiquetas}")
+                # Guardar templates en el contenido
+                contenido['templates'] = templates_por_lenguaje
+                
+            # Procesar tests avanzados por lenguaje
+            tests_por_lenguaje = request.data.get('tests_por_lenguaje', None)
+            if tests_por_lenguaje is not None:
+                # Convertir a diccionario si es string
+                if isinstance(tests_por_lenguaje, str):
+                    try:
+                        tests_por_lenguaje = json.loads(tests_por_lenguaje)
+                    except:
+                        tests_por_lenguaje = {}
+                
+                # Guardar en tests_avanzados
+                validated_data['tests_avanzados'] = tests_por_lenguaje
+            
+            # Actualizar contenido
+            validated_data['contenido'] = contenido
         
         return super().update(instance, validated_data)
 
+    def update(self, instance, validated_data):
+        """
+        Actualiza las etiquetas y templates por lenguaje al modificar un ejercicio
+        """
+        # Obtener contenido existente
+        contenido = validated_data.get('contenido', instance.contenido) or {}
+        if not isinstance(contenido, dict):
+            try:
+                contenido = json.loads(contenido) if isinstance(contenido, str) else {}
+            except:
+                contenido = {}
+        
+        # Obtener datos enviados por el cliente
+        request = self.context.get('request')
+        if request and hasattr(request, 'data'):
+            # Procesar templates por lenguaje
+            templates_por_lenguaje = request.data.get('templates_por_lenguaje', None)
+            if templates_por_lenguaje is not None:
+                # Convertir a diccionario si es string
+                if isinstance(templates_por_lenguaje, str):
+                    try:
+                        templates_por_lenguaje = json.loads(templates_por_lenguaje)
+                    except:
+                        templates_por_lenguaje = {}
+                
+                # Guardar templates en el contenido
+                contenido['templates'] = templates_por_lenguaje
+                
+            # Procesar tests avanzados por lenguaje
+            tests_por_lenguaje = request.data.get('tests_por_lenguaje', None)
+            if tests_por_lenguaje is not None:
+                # Convertir a diccionario si es string
+                if isinstance(tests_por_lenguaje, str):
+                    try:
+                        tests_por_lenguaje = json.loads(tests_por_lenguaje)
+                    except:
+                        tests_por_lenguaje = {}
+                
+                # Guardar en tests_avanzados
+                validated_data['tests_avanzados'] = tests_por_lenguaje
+            
+            # Actualizar contenido
+            validated_data['contenido'] = contenido
+        
+        return super().update(instance, validated_data)
 
 class EvaluacionEjercicioSerializer(serializers.ModelSerializer):
-    """
-    Serializador para la relación entre Evaluación y Ejercicio
-    """
-    ejercicio_detalle = EjercicioSerializer(source='ejercicio', read_only=True)
+        """
+        Serializador para la relación entre Evaluación y Ejercicio
+        """
+        ejercicio_detalle = EjercicioSerializer(source='ejercicio', read_only=True)
+        
+        class Meta:
+            model = EvaluacionEjercicio
+            fields = ['ejercicio', 'ejercicio_detalle', 'orden']
     
-    class Meta:
-        model = EvaluacionEjercicio
-        fields = ['ejercicio', 'ejercicio_detalle', 'orden']
 
 
 class EvaluacionSerializer(serializers.ModelSerializer):
@@ -296,7 +398,7 @@ class EstudianteEvaluacionSerializer(serializers.ModelSerializer):
         fields = ['id', 'estudiante', 'estudiante_nombre', 'evaluacion', 
                   'evaluacion_titulo', 'estado', 'fecha_inicio', 'fecha_fin',
                   'puntaje', 'ajustes_puntaje', 'progreso', 'progreso_porcentaje',
-                  'ip_acceso', 'respuestas']
+                  'ip_acceso', 'respuestas', 'tiempo_total_ms']
         read_only_fields = ['id', 'fecha_inicio', 'fecha_fin', 'puntaje',
                            'ajustes_puntaje', 'progreso', 'ip_acceso']
     

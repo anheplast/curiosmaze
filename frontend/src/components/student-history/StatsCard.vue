@@ -109,24 +109,37 @@ export default {
       return sum / validScores.length;
     });
     
-    // Calcular tiempo promedio
+    // Calcular tiempo promedio - versión mejorada
     const averageTime = computed(() => {
       if (!props.evaluations.length) return 0;
-      
-      let totalTime = 0;
-      let count = 0;
-      
-      props.evaluations.forEach(evaluation => {
-        if (evaluation.tiempo_total) {
-          const time = parseTimeDuration(evaluation.tiempo_total);
-          if (time > 0) {
-            totalTime += time;
-            count++;
+
+      const validTimes = props.evaluations
+        .map(evaluation => {
+          // 1. Priorizar tiempo_total_ms si está disponible
+          if (evaluation.tiempo_total_ms && evaluation.tiempo_total_ms > 0) {
+            return evaluation.tiempo_total_ms;
           }
-        }
-      });
-      
-      return count > 0 ? totalTime / count : 0;
+
+          // 2. Verificar en detalles adicionales
+          if (evaluation.detalles_adicionales && evaluation.detalles_adicionales.tiempo_total_ms &&
+            evaluation.detalles_adicionales.tiempo_total_ms > 0) {
+            return evaluation.detalles_adicionales.tiempo_total_ms;
+          }
+
+          // 3. Si tiempo_total es un número, usarlo
+          if (typeof evaluation.tiempo_total === 'number' && evaluation.tiempo_total > 0) {
+            return evaluation.tiempo_total;
+          }
+
+          // 4. Fallback a tiempo_total parseado
+          return parseTimeDuration(evaluation.tiempo_total);
+        })
+        .filter(time => time > 0);
+
+      if (validTimes.length === 0) return 0;
+
+      const sum = validTimes.reduce((acc, time) => acc + time, 0);
+      return Math.round(sum / validTimes.length);
     });
     
     // Formatear tiempo promedio
@@ -179,18 +192,34 @@ export default {
     });
     
     // Parsear duración de tiempo
-    const parseTimeDuration = (timeString) => {
-      if (!timeString) return 0;
-      
-      // Si es formato HH:MM:SS
-      const parts = timeString.split(':');
-      if (parts.length === 3) {
-        const hours = parseInt(parts[0]) || 0;
-        const minutes = parseInt(parts[1]) || 0;
-        const seconds = parseInt(parts[2]) || 0;
-        return (hours * 3600 + minutes * 60 + seconds) * 1000;
+    const parseTimeDuration = (timeValue) => {
+      if (!timeValue) return 0;
+
+      // Si es un número (milisegundos), usarlo directamente
+      if (typeof timeValue === 'number') {
+        return timeValue;
       }
-      
+
+      // Si es string que parece número, convertirlo
+      if (typeof timeValue === 'string' && !isNaN(parseInt(timeValue))) {
+        return parseInt(timeValue);
+      }
+
+      // Si es formato HH:MM:SS o MM:SS, parsearlo
+      if (typeof timeValue === 'string' && timeValue.includes(':')) {
+        const parts = timeValue.split(':');
+        if (parts.length === 3) {
+          const hours = parseInt(parts[0]) || 0;
+          const minutes = parseInt(parts[1]) || 0;
+          const seconds = parseFloat(parts[2]) || 0;
+          return (hours * 3600 + minutes * 60 + seconds) * 1000;
+        } else if (parts.length === 2) {
+          const minutes = parseInt(parts[0]) || 0;
+          const seconds = parseFloat(parts[1]) || 0;
+          return (minutes * 60 + seconds) * 1000;
+        }
+      }
+
       return 0;
     };
     

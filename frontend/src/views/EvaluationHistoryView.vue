@@ -59,8 +59,11 @@
             <!-- Tarjeta de estadísticas -->
             <StatsCard :evaluations="evaluations" />
             
-            <!-- Gráfico de habilidades -->
-            <SkillsChart :evaluations="evaluations" />
+            <!-- Gráfico de habilidades 
+                ELIMINADO! 
+            -->
+             
+            
           </div>
           
           <!-- Columna derecha - Lista de evaluaciones -->
@@ -201,6 +204,13 @@ export default {
       }
       
       evaluation.puntaje_sobre_10 = puntajeSobre10;
+
+      // Asegurar tiempo_total_ms si está disponible
+      if (evaluation.tiempo_total_ms && evaluation.tiempo_total_ms > 0) {
+        evaluation.tiempo_total = evaluation.tiempo_total_ms;
+      } else if (evaluation.detalles && evaluation.detalles.tiempo_total_ms && evaluation.detalles.tiempo_total_ms > 0) {
+        evaluation.tiempo_total = evaluation.detalles.tiempo_total_ms;
+      }
       
       // Añade propiedades formateadas para compatibilidad
       evaluation.formattedScore = `${puntajeSobre10.toFixed(1)}/10`;

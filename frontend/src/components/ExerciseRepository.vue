@@ -1776,4 +1776,32 @@ export default {
     justify-content: center;
   }
 }
+
+/* Estilos para tema claro del navegador */
+@media (prefers-color-scheme: light) {
+  .exercise-repository-wrapper .delete-modal .modal-card-body {
+    background-color: #ffffff;
+    color: #1a1a1a;
+  }
+  
+  .exercise-repository-wrapper .delete-modal .modal-card-body h3 {
+    color: #1a1a1a;
+  }
+  
+  .exercise-repository-wrapper .delete-modal .modal-card-body p {
+    color: #1a1a1a;
+  }
+  
+  .exercise-repository-wrapper .delete-modal .modal-card-body strong {
+    color: #000000;
+  }
+  
+  .exercise-repository-wrapper .delete-modal .modal-card-body .has-text-danger {
+    color: #d63384 !important;
+  }
+  
+  .exercise-repository-wrapper .delete-modal .modal-card-body .fas.fa-exclamation-triangle {
+    color: #d63384;
+  }
+}
 </style>

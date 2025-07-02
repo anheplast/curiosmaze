@@ -21,6 +21,22 @@
           </select>
         </div>
 
+        <!-- Selector de lenguajes -->
+        <div v-if="isLanguageSelectorEnabled && !isHistoryMode" class="language-selector">
+          <select v-model="selectedLanguage" class="language-select" @change="changeLanguage">
+            <option disabled value="">-- Seleccionar lenguaje --</option>
+            <option v-for="lang in availableLanguages" :key="lang.id" :value="lang.id">
+              {{ lang.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Indicador de lenguaje en modo historial -->
+        <div v-if="isHistoryMode" class="language-indicator">
+          <span class="language-label">Lenguaje:</span>
+          <span class="language-name">{{ getLanguageName(selectedLanguage) }}</span>
+        </div>
+
         <!-- Botón expandir -->
         <button class="expand-button" @click="toggleFullScreen">
           <svg v-if="!isFullScreen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -33,58 +49,42 @@
           </svg>
         </button>
       </div>
-      
+
       <!-- Contenedor del editor -->
       <div class="editor-container">
-        <EditorCodemirror 
-          ref="editorRef" 
-          :is-full-screen="isFullScreen" 
-          :theme="selectedTheme"
-          :read-only="isHistoryMode" 
-        />
+        <EditorCodemirror ref="editorRef" :is-full-screen="isFullScreen" :theme="selectedTheme"
+          :read-only="isHistoryMode" />
       </div>
 
       <div class="panel-footer" :class="{ 'is-hidden': isFullScreen }">
         <!-- Botones de ayuda (helper buttons) - Sección de Pista y Reiniciar -->
         <div class="helper-buttons">
-          <button 
-            class="helper-button hint-button" 
-            title="Ver pista" 
-            @click="toggleHintModal"
+          <button class="helper-button hint-button" title="Ver pista" @click="toggleHintModal"
             :disabled="isHistoryMode">
             <span class="helper-icon">💡</span>
             <span class="helper-text">PISTA</span>
           </button>
 
-          <button 
-            class="helper-button reset-button" 
-            title="Reiniciar código" 
-            @click="resetCode"
+          <button class="helper-button reset-button" title="Reiniciar código" @click="resetCode"
             :disabled="isHistoryMode">
             <span class="helper-icon">🔄</span>
             <span class="helper-text">REINICIAR</span>
           </button>
         </div>
-        
+
         <!-- Botones de acción (TEST y ENVIAR) -->
         <div class="action-buttons">
-          <button 
-            class="action-button test-button" 
-            @click="runTest"
+          <button class="action-button test-button" @click="runTest"
             :disabled="isHistoryMode || isTestExecuting || !currentExercise || isExerciseComplete"
-            :title="isHistoryMode ? 'Modo solo lectura' : (isExerciseComplete ? 'Ejercicio ya completado' : 'Probar solución')"
-          >
+            :title="isHistoryMode ? 'Modo solo lectura' : (isExerciseComplete ? 'Ejercicio ya completado' : 'Probar solución')">
             <span class="button-icon" :class="{ 'rotating': isTestExecuting }">🧪</span>
             <span v-if="isExerciseComplete">✓</span>
             <span v-else-if="isTestExecuting">EJECUTANDO...</span>
             <span v-else>TEST</span>
           </button>
 
-          <button 
-            class="action-button submit-button" 
-            @click="submitCode"
-            :disabled="isHistoryMode || isSubmitExecuting || !currentExercise"
-          >
+          <button class="action-button submit-button" @click="submitCode"
+            :disabled="isHistoryMode || isSubmitExecuting || !currentExercise">
             <span v-if="isSubmitExecuting" class="loading-dots">
               <span class="dot"></span>
               <span class="dot"></span>
@@ -164,6 +164,7 @@ import { useRouter } from 'vue-router';
 import EditorCodemirror from '../EditorCodemirror.vue';
 import judge0Service from '@/services/judge0Service';
 import evaluationsService from '@/api/evaluationsService';
+import settingsService from '@/api/settingsService';
 
 export default {
   name: 'PracticalRightPanel',
@@ -179,7 +180,12 @@ export default {
     const isTestExecuting = ref(false);
     const isSubmitExecuting = ref(false);
     const hintContent = ref('');
-    
+    const availableLanguages = ref([]);
+    const selectedLanguage = ref(71); // Python 3 por defecto
+    const isLanguageSelectorEnabled = ref(false);
+
+    const isDevelopment = ref(false);
+
     // Inyecciones
     const isHistoryMode = inject('isHistoryMode', ref(false));
     const exercises = inject('exercises', ref([]));
@@ -192,6 +198,351 @@ export default {
     });
 
     console.log("Modo Historia inicializado:", isHistoryMode.value);
+
+    // Función para cargar los lenguajes disponibles
+    const loadAvailableLanguages = async () => {
+      try {
+        console.log("Intentando cargar lenguajes disponibles...");
+        const judge0Url = import.meta.env.VITE_JUDGE0_API_URL;
+        if (!judge0Url) {
+          console.error("URL de Judge0 no configurada");
+          return;
+        }
+
+        // Verificar que la URL termine correctamente
+        const apiUrl = judge0Url.endsWith('/') ? `${judge0Url}languages` : `${judge0Url}/languages`;
+        console.log("Haciendo fetch a:", apiUrl);
+
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+          console.error("Error al cargar lenguajes:", response.status, response.statusText);
+          return;
+        }
+
+        const languages = await response.json();
+
+        if (!Array.isArray(languages)) {
+          console.error("Respuesta inesperada:", languages);
+          return;
+        }
+
+        console.log('Lenguajes disponibles cargados:', languages.length);
+        console.log('Primer lenguaje:', languages[0]);
+
+        // Asignar directamente a availableLanguages
+        availableLanguages.value = languages;
+
+        // Ordenar lenguajes populares al principio
+        const popularIds = [71, 63, 62, 54, 50]; // Python, JavaScript, Java, C++, C
+        availableLanguages.value.sort((a, b) => {
+          const aPopular = popularIds.includes(a.id);
+          const bPopular = popularIds.includes(b.id);
+
+          if (aPopular && !bPopular) return -1;
+          if (!aPopular && bPopular) return 1;
+          return 0;
+        });
+
+        // Registrar los lenguajes cargados para debug
+        console.log("Lenguajes disponibles:", availableLanguages.value.map(l => `${l.id}: ${l.name}`).join(', '));
+      } catch (error) {
+        console.error('Error al cargar lenguajes:', error);
+      }
+    };
+
+    // Función para obtener nombre del lenguaje
+    const getLanguageName = (langId) => {
+      const parsedId = parseInt(langId);
+
+      // Mapa de IDs a nombres de lenguaje
+      const languageNames = {
+        71: 'Python 3',
+        70: 'Python 2',
+        63: 'JavaScript',
+        62: 'Java',
+        54: 'C++',
+        53: 'C++ (GCC 8.3.0)',
+        52: 'C++ (GCC 7.4.0)',
+        50: 'C',
+        49: 'C (GCC 8.3.0)',
+        48: 'C (GCC 7.4.0)',
+        74: 'TypeScript',
+        73: 'Rust',
+        60: 'Go',
+        68: 'PHP'
+      };
+
+      // Intentar obtener desde availableLanguages si existe
+      if (availableLanguages.value && availableLanguages.value.length > 0) {
+        const lang = availableLanguages.value.find(l => l.id === parsedId);
+        if (lang) return lang.name;
+      }
+
+      // Sino, usar el mapa predefinido
+      return languageNames[parsedId] || `Lenguaje ID ${parsedId}`;
+    };
+
+    
+
+    const changeLanguage = () => {
+
+      // BLOQUEAR cambios de lenguaje en modo historial
+      if (isHistoryMode.value) {
+        console.log('❌ Cambio de lenguaje bloqueado en modo historial');
+        return;
+      }
+
+      // Verificar si hay código escrito antes de cambiar
+      if (editorRef.value && editorRef.value.getContent) {
+        const currentCode = editorRef.value.getContent().trim();
+
+        // Si hay código escrito, mostrar confirmación
+        if (currentCode && currentCode.length > 0) {
+          // Verificar que no sea solo una plantilla por defecto
+          const isDefaultTemplate = currentCode.includes('# Tu código aquí') ||
+            currentCode.includes('// Tu código aquí') ||
+            currentCode.includes('No hay plantilla específica') ||
+            currentCode.includes('Por favor, implementa tu solución aquí');
+
+          if (!isDefaultTemplate) {
+            showConfirmation(
+              '¿Estás seguro de cambiar el lenguaje? Perderás el código que has escrito.',
+              () => {
+                // Usuario confirmó, proceder con el cambio
+                performLanguageChange();
+              },
+              () => {
+                // Usuario canceló, revertir selección
+                const savedLanguage = localStorage.getItem('selected_language_id');
+                if (savedLanguage) {
+                  selectedLanguage.value = parseInt(savedLanguage);
+                }
+                showNotification('Cambio de lenguaje cancelado', 'info');
+              }
+            );
+            return; // No continuar con el cambio inmediatamente
+          }
+        }
+      }
+
+      // Si no hay código o es plantilla por defecto, cambiar directamente
+      performLanguageChange();
+    };
+
+    // Función auxiliar para realizar el cambio de lenguaje
+    const performLanguageChange = () => {
+      console.log(`Lenguaje cambiado a ID: ${selectedLanguage.value}`);
+
+      // Guardar en localStorage
+      localStorage.setItem('selected_language_id', selectedLanguage.value);
+
+      if (currentExercise.value) {
+        const userId = getCurrentUserId();
+        const evaluationData = localStorage.getItem('currentEvaluation')
+          ? JSON.parse(localStorage.getItem('currentEvaluation'))
+          : null;
+        const evaluationId = evaluationData?.id || 'unknown';
+        const exerciseLanguageKey = `exercise_language_${userId}_${evaluationId}_${currentExercise.value.id}`;
+
+        localStorage.setItem(exerciseLanguageKey, selectedLanguage.value.toString());
+        console.log(`🔧 Lenguaje ${selectedLanguage.value} guardado para ejercicio ${currentExercise.value.id}`);
+      }
+
+      console.log('=== DEBUG EJERCICIO FRONTEND ===');
+      console.log('Ejercicio completo:', JSON.stringify(currentExercise.value, null, 2));
+      console.log('¿Tiene templates_por_lenguaje?:', !!currentExercise.value.templates_por_lenguaje);
+      console.log('Templates por lenguaje:', currentExercise.value.templates_por_lenguaje);
+      console.log('¿Tiene template (no debería)?:', !!currentExercise.value.template);
+      console.log('==================================');
+
+      // Verificar si necesitamos recargar la plantilla
+      if (editorRef.value && currentExercise.value) {
+        const exerciseId = currentExercise.value.id;
+
+        // Construir clave del código
+        const codeKey = getExerciseCodeKey(exerciseId);
+
+        // Importante: SIEMPRE borrar el código guardado al cambiar de lenguaje
+        localStorage.removeItem(codeKey);
+        console.log(`Borrado código guardado para cargar plantilla del lenguaje ${selectedLanguage.value}`);
+
+        // Cargar directamente la plantilla específica para el nuevo lenguaje
+        try {
+          // Primero, intentar obtener la plantilla específica del ejercicio actual
+          let template = '';
+          let templateFound = false;
+
+          console.log('Ejercicio actual:', currentExercise.value);
+          console.log('Estructura completa del ejercicio:', Object.keys(currentExercise.value));
+
+          // Buscar directamente en templates_por_lenguaje
+          if (currentExercise.value.templates_por_lenguaje &&
+            typeof currentExercise.value.templates_por_lenguaje === 'object') {
+            const langIdStr = String(selectedLanguage.value);
+
+            console.log('Buscando en templates_por_lenguaje para lenguaje:', langIdStr);
+            console.log('Templates disponibles:', currentExercise.value.templates_por_lenguaje);
+
+            if (currentExercise.value.templates_por_lenguaje[langIdStr]) {
+              template = currentExercise.value.templates_por_lenguaje[langIdStr];
+              templateFound = true;
+              console.log(`Plantilla encontrada en templates_por_lenguaje para lenguaje ID ${selectedLanguage.value}`);
+            }
+          }
+
+          // Luego buscar en contenido.templates (por compatibilidad)
+          if (!templateFound && currentExercise.value.contenido) {
+            const contenido = typeof currentExercise.value.contenido === 'object'
+              ? currentExercise.value.contenido
+              : {};
+
+            console.log('Buscando en contenido.templates');
+
+            if (contenido.templates && typeof contenido.templates === 'object') {
+              const langIdStr = String(selectedLanguage.value);
+
+              if (contenido.templates[langIdStr]) {
+                template = contenido.templates[langIdStr];
+                templateFound = true;
+                console.log(`Plantilla específica para lenguaje ID ${selectedLanguage.value} encontrada en contenido.templates`);
+              }
+            }
+          }
+
+          // Si no se encontró plantilla, generar una por defecto
+          if (!templateFound) {
+            const langName = availableLanguages.value.find(l => l.id === selectedLanguage.value)?.name ||
+              `Lenguaje ID ${selectedLanguage.value}`;
+            const comentario = selectedLanguage.value === 71 ? '#' : '//';
+            template = `${comentario} No hay plantilla específica para ${langName} en este ejercicio\n${comentario} Por favor, implementa tu solución aquí`;
+            console.log('Usando plantilla por defecto generada');
+          }
+
+          // Establecer directamente el contenido en el editor
+          if (editorRef.value && editorRef.value.setContent) {
+            editorRef.value.setContent(template);
+            console.log("Plantilla cargada directamente en el editor");
+
+            // Guardar el nuevo código
+            if (editorRef.value.saveCurrentCode) {
+              setTimeout(() => {
+                editorRef.value.saveCurrentCode();
+                console.log("Nuevo código guardado en localStorage");
+              }, 100);
+            }
+          } else {
+            console.warn("No se puede acceder al método setContent del editor");
+          }
+        } catch (e) {
+          console.error("Error al cargar plantilla:", e);
+        }
+      }
+
+      // Mostrar notificación si está disponible
+      const selectedLang = availableLanguages.value.find(lang => lang.id === selectedLanguage.value);
+      const langName = selectedLang ? selectedLang.name : `ID: ${selectedLanguage.value}`;
+
+      if (notificationRef?.value?.showNotification) {
+        notificationRef.value.showNotification(`Lenguaje cambiado a: ${langName}`, 'info');
+      }
+    };
+    
+
+
+    // Función para verificar si el selector está habilitado
+    const checkLanguageSelectorEnabled = async () => {
+      console.log("🔧 Verificando configuración del selector de lenguajes desde servidor...");
+
+      try {
+        // SIEMPRE consultar al servidor primero
+        const response = await settingsService.getLanguageSelectorConfig();
+
+        if (response.data.success) {
+          const enabled = response.data.language_selector_enabled;
+          const defaultLang = response.data.default_language_id || 71;
+
+          isLanguageSelectorEnabled.value = enabled;
+
+          console.log(`🎛️ Configuración desde servidor: ${enabled ? 'HABILITADO' : 'DESHABILITADO'}`);
+          console.log(`🐍 Lenguaje por defecto: ${defaultLang}`);
+
+          // Configurar lenguaje
+          if (enabled) {
+            // Si está habilitado, usar el lenguaje guardado o el por defecto
+            const savedLanguage = localStorage.getItem('selected_language_id');
+            selectedLanguage.value = savedLanguage ? parseInt(savedLanguage) : defaultLang;
+
+            // Cargar lenguajes disponibles solo si está habilitado
+            await loadAvailableLanguages();
+          } else {
+            // Si está deshabilitado, usar Python por defecto y no cargar lenguajes
+            selectedLanguage.value = defaultLang;
+            availableLanguages.value = []; // Limpiar lenguajes para ahorrar memoria
+          }
+
+          // Sincronizar localStorage
+          localStorage.setItem('language_selector_enabled', enabled.toString());
+          localStorage.setItem('selected_language_id', selectedLanguage.value.toString());
+
+        } else {
+          throw new Error('Configuración no válida desde servidor');
+        }
+      } catch (error) {
+        console.error('❌ Error al obtener configuración desde servidor:', error);
+        console.log('🔄 Usando configuración de emergencia (DESHABILITADO)');
+
+        // Configuración de emergencia: DESHABILITADO
+        isLanguageSelectorEnabled.value = false;
+        selectedLanguage.value = 71; // Python por defecto
+        availableLanguages.value = [];
+
+        // NO usar localStorage como fallback para evitar configuraciones obsoletas
+        localStorage.setItem('language_selector_enabled', 'false');
+        localStorage.setItem('selected_language_id', '71');
+      }
+    };
+
+    const setupConfigListener = () => {
+      console.log("📡 Configurando listener de cambios de configuración...");
+
+      // Escuchar eventos de cambio de configuración
+      const handleConfigChange = async (event) => {
+        console.log("📡 Evento de cambio de configuración recibido:", event.detail);
+
+        // Re-verificar configuración desde servidor
+        await checkLanguageSelectorEnabled();
+      };
+
+      // Escuchar el evento personalizado del AdminHome
+      window.addEventListener('language-selector-config-changed', handleConfigChange);
+
+      // NO escuchar localStorage para evitar configuraciones obsoletas
+      // Solo el servidor es la fuente de verdad
+
+      // Verificar configuración cada 30 segundos como respaldo
+      const configInterval = setInterval(async () => {
+        try {
+          const response = await settingsService.getLanguageSelectorConfig();
+          if (response.data.success) {
+            const serverEnabled = response.data.language_selector_enabled;
+
+            if (serverEnabled !== isLanguageSelectorEnabled.value) {
+              console.log("🔄 Cambio de configuración detectado desde servidor");
+              await checkLanguageSelectorEnabled();
+            }
+          }
+        } catch (error) {
+          // Silenciar errores del polling para no saturar los logs
+        }
+      }, 30000); // 30 segundos
+
+      // Limpiar al desmontar
+      onBeforeUnmount(() => {
+        window.removeEventListener('language-selector-config-changed', handleConfigChange);
+        clearInterval(configInterval);
+      });
+    };
 
     // Función para mostrar notificaciones
     const showNotification = (message, type = 'info', duration = 3000) => {
@@ -244,31 +595,31 @@ export default {
     const cleanOldStates = () => {
       const userId = getCurrentUserId();
       const evaluationId = evaluation.value?.id;
-      
+
       if (evaluationId && exercises.value?.length > 0) {
         console.log(`🧹 Limpiando estados antiguos para evaluación ${evaluationId}`);
-        
+
         exercises.value.forEach(exercise => {
           if (!exercise?.id) return;
 
           // Claves antiguas sin evaluationId
           const oldStatusKey = `exercise_status_${userId}_${exercise.id}`;
           const oldCodeKey = `exercise_code_${userId}_${exercise.id}`;
-          
+
           // Remover claves antiguas
           localStorage.removeItem(oldStatusKey);
-          
+
           // También limpiar el nuevo formato para esta evaluación
           const statusKey = getExerciseStatusKey(exercise.id);
           localStorage.removeItem(statusKey);
 
           console.log(`Limpiado estado para ejercicio ${exercise.id}`);
         });
-        
+
         // Limpiar lista de ejercicios completados (formato antiguo)
         const oldCompletedKey = `completed_exercises_${userId}`;
         localStorage.removeItem(oldCompletedKey);
-        
+
         console.log(`✅ Limpieza completada para evaluación ${evaluationId}`);
       }
     };
@@ -277,11 +628,11 @@ export default {
     const resetEvaluationStates = () => {
       const userId = getCurrentUserId();
       const evaluationId = evaluation.value?.id;
-      
+
       if (!evaluationId) return;
-      
+
       console.log(`🔄 Reiniciando estados para evaluación ${evaluationId}`);
-      
+
       // Reiniciar todos los estados de esta evaluación
       if (exercises.value?.length > 0) {
         exercises.value.forEach(exercise => {
@@ -289,15 +640,15 @@ export default {
           localStorage.removeItem(statusKey);
         });
       }
-      
+
       // Reiniciar lista de ejercicios completados
       const completedKey = `completed_exercises_${userId}_${evaluationId}`;
       localStorage.removeItem(completedKey);
-      
+
       // Reiniciar puntuaciones
       const scoresKey = getScoresKey();
       localStorage.removeItem(scoresKey);
-      
+
       console.log(`✅ Estados reiniciados para evaluación ${evaluationId}`);
     };
 
@@ -313,24 +664,24 @@ export default {
       if (!exercises.value || exercises.value.length === 0) {
         return null;
       }
-      
+
       if (currentExerciseIndex.value >= exercises.value.length) {
         return exercises.value[0];
       }
-      
+
       return exercises.value[currentExerciseIndex.value];
     });
 
     const isExerciseComplete = computed(() => {
       if (!currentExercise.value) return false;
-      
+
       const status = getExerciseStatus(currentExercise.value.id);
       return status === 'completed';
     });
 
     // Estado para el tema seleccionado
     const selectedTheme = ref(localStorage.getItem('editor_theme') || 'dracula');
-    
+
     const changeTheme = () => {
       console.log(`Tema cambiado a: ${selectedTheme.value}`);
     };
@@ -341,7 +692,7 @@ export default {
 
     const pendingExercisesCount = computed(() => {
       if (!exercises.value) return 0;
-      
+
       return exercises.value.filter(ex => {
         const status = getExerciseStatus(ex.id);
         return status !== 'completed';
@@ -350,46 +701,46 @@ export default {
 
     const completedExercisesCount = computed(() => {
       if (!exercises.value) return 0;
-      
+
       return exercises.value.filter(ex => {
         const status = getExerciseStatus(ex.id);
         return status === 'completed';
       }).length;
     });
-    
+
     // Obtener estado de un ejercicio desde localStorage
     const getExerciseStatus = (exerciseId) => {
       if (!exerciseId) return 'pending';
-      
+
       const statusKey = getExerciseStatusKey(exerciseId);
       const status = localStorage.getItem(statusKey);
-      
+
       // DEBUG: verificar claves antiguas
       const userId = getCurrentUserId();
       const oldKey = `exercise_status_${userId}_${exerciseId}`;
       const oldStatus = localStorage.getItem(oldKey);
-      
+
       if (oldStatus) {
         console.warn(`⚠️ Encontrada clave antigua para ejercicio ${exerciseId}. Limpiando...`);
         localStorage.removeItem(oldKey);
       }
-      
+
       return status || 'pending';
     };
-    
+
     // Toggle modales
     const toggleHintModal = () => {
       if (isHistoryMode.value) return;
-      
+
       showHintModal.value = !showHintModal.value;
-      
+
       if (showHintModal.value && currentExercise.value) {
         console.log('Extrayendo pista del ejercicio:', currentExercise.value);
         hintContent.value = extractHint(currentExercise.value);
         console.log('Pista extraída:', hintContent.value);
       }
     };
-    
+
     const extractHint = (exercise) => {
       console.log('=== DETALLES DEL EJERCICIO ===');
       console.log('Ejercicio completo:', JSON.stringify(exercise, null, 2));
@@ -415,13 +766,13 @@ export default {
       }
       return 'No hay pistas disponibles para este ejercicio.';
     };
-    
+
     const toggleSubmitModal = () => {
       if (isHistoryMode.value) return;
-      
+
       showSubmitModal.value = !showSubmitModal.value;
     };
-    
+
     const toggleFullScreen = () => {
       console.log("Cambiando estado de pantalla completa:", !isFullScreen.value);
       isFullScreen.value = !isFullScreen.value;
@@ -447,12 +798,12 @@ export default {
         }
       });
     };
-    
+
     const resetCode = () => {
       if (isHistoryMode.value) return;
-      
+
       if (!currentExercise.value || !editorRef.value) return;
-      
+
       showConfirmation(
         '¿Está seguro que desea reiniciar el código? Perderá todos los cambios.',
         () => {
@@ -460,23 +811,60 @@ export default {
           // Eliminar código con la clave correcta
           const codeKey = getExerciseCodeKey(exerciseId);
           localStorage.removeItem(codeKey);
-          
-          const template = extractTemplate(currentExercise.value);
-          
+          console.log(`Código eliminado para ejercicio ${exerciseId}`);
+
+          // Buscar la plantilla específica para el lenguaje actual
+          let template = '';
+          let templateFound = false;
+
+          if (currentExercise.value.contenido) {
+            const contenido = typeof currentExercise.value.contenido === 'object'
+              ? currentExercise.value.contenido
+              : JSON.parse(currentExercise.value.contenido || '{}');
+
+            // Buscar en templates por lenguaje
+            if (contenido.templates && contenido.templates[selectedLanguage.value]) {
+              template = contenido.templates[selectedLanguage.value];
+              templateFound = true;
+              console.log(`Restablecida plantilla para lenguaje ID ${selectedLanguage.value}`);
+            }
+            // Si no hay plantilla para este lenguaje pero hay una para Python
+            else if (contenido.templates && contenido.templates['71'] && selectedLanguage.value !== 71) {
+              const langName = availableLanguages.value.find(l => l.id === selectedLanguage.value)?.name ||
+                `Lenguaje ID ${selectedLanguage.value}`;
+              template = `// No hay plantilla específica para ${langName} en este ejercicio\n// Por favor, implementa tu solución aquí`;
+              templateFound = true;
+            }
+            // Usar plantilla general como fallback
+            else if (contenido.template) {
+              template = contenido.template;
+              templateFound = true;
+            }
+          }
+
+          // Si no se encontró plantilla, generar una por defecto
+          if (!templateFound) {
+            const langName = availableLanguages.value.find(l => l.id === selectedLanguage.value)?.name ||
+              `Lenguaje ID ${selectedLanguage.value}`;
+            // Usar # para Python, // para otros lenguajes
+            const comentario = selectedLanguage.value === 71 ? '#' : '//';
+            template = `${comentario} No hay plantilla específica para ${langName} en este ejercicio\n${comentario} Por favor, implementa tu solución aquí`;
+          }
+
           if (editorRef.value) {
             editorRef.value.setContent(template);
-            
+
             if (editorRef.value.saveCurrentCode) {
               editorRef.value.saveCurrentCode();
             }
           }
-          
+
           showNotification('Código reiniciado correctamente', 'success');
         },
         () => showNotification('Operación cancelada', 'info')
       );
     };
-    
+
     const extractTemplate = (exercise) => {
       if (exercise.template && exercise.template.trim() !== '') {
         console.log('Usando plantilla definida directamente en el ejercicio');
@@ -499,11 +887,11 @@ export default {
           }
         }
       }
-    
+
       console.log('No se encontró plantilla definida, usando plantilla por defecto');
       return generateDefaultTemplate(exercise);
     };
-    
+
     const getCompletedExercises = () => {
       try {
         const userId = getCurrentUserId();
@@ -580,11 +968,24 @@ export default {
 
     const runTest = async () => {
       if (isHistoryMode.value) return;
-      
+
       if (!editorRef.value || !currentExercise.value) {
         console.error("No se puede ejecutar la prueba: faltan referencias necesarias");
         return;
       }
+
+      if (!selectedLanguage.value) {
+        console.error("No hay lenguaje seleccionado");
+        if (leftPanelRef && leftPanelRef.value) {
+          leftPanelRef.value.setTestResults("Error: No se ha seleccionado un lenguaje de programación");
+          leftPanelRef.value.activateOutputTab();
+        }
+        isTestExecuting.value = false;
+        return;
+      }
+
+      // Que lenguaje de programacion?
+      console.log(`Ejecutando codigo con language ID: ${selectedLanguage.value}`);
 
       isTestExecuting.value = true;
 
@@ -630,7 +1031,12 @@ export default {
           console.log("Usando tests avanzados");
           try {
             const codigo_completo = code + "\n\n" + testCode;
-            const testResult = await judge0Service.executeCode(codigo_completo);
+            const testResult = await judge0Service.executeCode(
+              codigo_completo,
+              "", // input
+              "", // expected output
+              selectedLanguage.value // ID del lenguaje
+            );
 
             if (!testResult.success) {
               results += `Error al ejecutar las pruebas: ${testResult.error || 'Error desconocido'}\n`;
@@ -697,7 +1103,11 @@ export default {
           try {
             const ejemplos = corregirFormatoEntradas(currentExercise.value.ejemplos);
 
-            const verification = await judge0Service.verificarEjemplos(code, ejemplos);
+            const verification = await judge0Service.verificarEjemplos(
+              code,
+              ejemplos,
+              selectedLanguage.value // ID del lenguaje
+            );
 
             if (verification.success) {
               results += `### Resultados de la ejecución: ###\n\n`;
@@ -765,7 +1175,12 @@ export default {
         else {
           console.log("Ejecutando código sin pruebas específicas");
           try {
-            const resultado = await judge0Service.executeCode(code);
+            const resultado = await judge0Service.executeCode(
+              code,
+              "", // input
+              "", // expected output
+              selectedLanguage.value // ID del lenguaje
+            );
 
             if (resultado.success) {
               results += `✅ Ejecución exitosa\n\n`;
@@ -799,7 +1214,6 @@ export default {
         }
 
         if (isSuccess && currentExercise.value && !isHistoryMode.value) {
-          markExerciseCompleted(currentExercise.value.id);
           updateExerciseStatus(true);
 
           saveExerciseScore(
@@ -882,6 +1296,7 @@ export default {
           }
         }
 
+        // Emitir evento para notificar cambio de estado
         window.dispatchEvent(new CustomEvent('exercise-status-changed', {
           detail: {
             exerciseId: exerciseId,
@@ -889,29 +1304,76 @@ export default {
             isCompleted: isCompleted
           }
         }));
+
+        // Emitir evento de compatibilidad para checkAllExercisesCompleted
+        if (isCompleted) {
+          window.dispatchEvent(new CustomEvent('exercise-completed', {
+            detail: { exerciseId: exerciseId }
+          }));
+        }
       }
     }
-    
+
     const extractTestCode = (exercise) => {
       let testCode = null;
 
       if (exercise.tests_avanzados) {
-        testCode = exercise.tests_avanzados;
+        // Si tests_avanzados es un objeto, buscar tests para el lenguaje actual
+        if (typeof exercise.tests_avanzados === 'object' && !Array.isArray(exercise.tests_avanzados)) {
+          testCode = exercise.tests_avanzados[selectedLanguage.value];
+
+          // Si no hay tests para este lenguaje, intentar con Python (71) como fallback
+          if (!testCode && selectedLanguage.value !== 71) {
+            testCode = exercise.tests_avanzados['71'];
+            console.log("No hay tests para el lenguaje seleccionado, usando tests de Python como alternativa");
+          }
+        } else {
+          // Compatibilidad con el formato anterior (string)
+          testCode = exercise.tests_avanzados;
+        }
       } else if (exercise.contenido) {
+        // Buscando en contenido
         if (typeof exercise.contenido === 'object') {
-          testCode = exercise.contenido.tests_avanzados;
+          if (exercise.contenido.tests_avanzados) {
+            if (typeof exercise.contenido.tests_avanzados === 'object' && !Array.isArray(exercise.contenido.tests_avanzados)) {
+              testCode = exercise.contenido.tests_avanzados[selectedLanguage.value];
+
+              // Fallback a Python
+              if (!testCode && selectedLanguage.value !== 71) {
+                testCode = exercise.contenido.tests_avanzados['71'];
+                console.log("No hay tests para el lenguaje seleccionado en contenido, usando tests de Python como alternativa");
+              }
+            } else {
+              testCode = exercise.contenido.tests_avanzados;
+            }
+          }
         } else if (typeof exercise.contenido === 'string') {
           try {
             const parsed = JSON.parse(exercise.contenido);
-            testCode = parsed.tests_avanzados;
+            if (parsed.tests_avanzados) {
+              if (typeof parsed.tests_avanzados === 'object' && !Array.isArray(parsed.tests_avanzados)) {
+                testCode = parsed.tests_avanzados[selectedLanguage.value];
+
+                // Fallback a Python
+                if (!testCode && selectedLanguage.value !== 71) {
+                  testCode = parsed.tests_avanzados['71'];
+                  console.log("No hay tests para el lenguaje seleccionado en contenido JSON, usando tests de Python como alternativa");
+                }
+              } else {
+                testCode = parsed.tests_avanzados;
+              }
+            }
           } catch (e) {
             console.warn('Error al parsear contenido para tests:', e);
           }
         }
       }
 
+      // Añadir funciones auxiliares si es necesario, adaptadas por lenguaje
       if (testCode) {
-        if (!testCode.includes('def ejecutar_tests_avanzados') &&
+        // Para Python
+        if (selectedLanguage.value === 71 &&
+          !testCode.includes('def ejecutar_tests_avanzados') &&
           !testCode.includes('function ejecutar_tests_avanzados')) {
 
           const auxiliarFunction = `
@@ -961,14 +1423,129 @@ def ejecutar_tests_avanzados(func, casos_prueba, mostrar_detalle=True):
 
           testCode = auxiliarFunction + "\n\n" + testCode;
         }
+        // Para JavaScript
+        else if (selectedLanguage.value === 63 && !testCode.includes('function ejecutarTestsAvanzados') && !testCode.includes('function test(')) {
+          const auxiliarFunction = `
+// Función auxiliar para ejecutar pruebas avanzadas (añadida automáticamente)
+function ejecutarTestsAvanzados(func, casosPrueba, mostrarDetalle = true) {
+    /**
+     * Ejecuta una serie de pruebas para una función.
+     * 
+     * @param {Function} func - La función a probar
+     * @param {Array} casosPrueba - Lista de tuplas [entrada, salidaEsperada]
+     * @param {boolean} mostrarDetalle - Si es true, muestra el detalle de cada caso
+     * @return {number} Número de pruebas pasadas
+     */
+    let pruebasPasadas = 0;
+    const totalPruebas = casosPrueba.length;
+    
+    console.log(\`Ejecutando \${totalPruebas} pruebas:\`);
+    
+    for (let i = 0; i < casosPrueba.length; i++) {
+        try {
+            const [entrada, esperado] = casosPrueba[i];
+            let resultado;
+            
+            // Si la entrada es un array, usar spread operator
+            if (Array.isArray(entrada)) {
+                resultado = func(...entrada);
+            } else {
+                resultado = func(entrada);
+            }
+            
+            if (JSON.stringify(resultado) === JSON.stringify(esperado)) {
+                pruebasPasadas++;
+                if (mostrarDetalle) {
+                    console.log(\`✓ CORRECTO - Prueba \${i+1}: con entrada \${JSON.stringify(entrada)} se obtuvo \${JSON.stringify(resultado)}\`);
+                }
+            } else {
+                if (mostrarDetalle) {
+                    console.log(\`✗ INCORRECTO - Prueba \${i+1}: con entrada \${JSON.stringify(entrada)}\`);
+                    console.log(\`  Se esperaba: \${JSON.stringify(esperado)}\`);
+                    console.log(\`  Se obtuvo: \${JSON.stringify(resultado)}\`);
+                }
+            }
+        } catch (e) {
+            if (mostrarDetalle) {
+                console.log(\`✗ ERROR - Prueba \${i+1}: con entrada \${JSON.stringify(casosPrueba[i][0])}\`);
+                console.log(\`  Error: \${e.message}\`);
+            }
+        }
+    }
+    
+    console.log(\`Resultado: \${pruebasPasadas}/\${totalPruebas} pruebas pasadas\`);
+    return pruebasPasadas;
+}
+
+// Función auxiliar para pruebas individuales
+function test(actual, expected, message = "") {
+    if (JSON.stringify(actual) === JSON.stringify(expected)) {
+        console.log(\`✓ CORRECTO: \${message}\`);
+        return true;
+    } else {
+        console.log(\`✗ INCORRECTO: \${message}\`);
+        console.log(\`  Esperado: \${JSON.stringify(expected)}\`);
+        console.log(\`  Obtenido: \${JSON.stringify(actual)}\`);
+        return false;
+    }
+}
+      `;
+
+          testCode = auxiliarFunction + "\n\n" + testCode;
+        }
+        // Para Java
+        else if (selectedLanguage.value === 62 && !testCode.includes('class TestRunner')) {
+          // Si el código Java no tiene una clase TestRunner principal
+          if (!testCode.includes('public static void main') && !testCode.trim().startsWith('public class')) {
+            const auxiliarFunction = `
+// Clase auxiliar para ejecutar pruebas (añadida automáticamente)
+public class TestRunner {
+    public static void main(String[] args) {
+        // El código de prueba debe estar debajo de esta línea
+        System.out.println("Ejecutando pruebas...");
+        
+        // Declaración para registro de resultados
+        int resultadoTests = 0;
+        int totalTests = 0;
+`;
+
+            const closingCode = `
+        // Mostrar resumen de resultados
+        System.out.println("Resultado: " + resultadoTests + "/" + totalTests + " pruebas pasadas");
+    }
+    
+    // Función auxiliar para pruebas
+    public static boolean test(Object actual, Object expected, String message) {
+        if (actual.equals(expected)) {
+            System.out.println("✓ CORRECTO: " + message);
+            return true;
+        } else {
+            System.out.println("✗ INCORRECTO: " + message);
+            System.out.println("  Esperado: " + expected);
+            System.out.println("  Obtenido: " + actual);
+            return false;
+        }
+    }
+}`;
+
+            testCode = auxiliarFunction + "\n\n" + testCode + "\n\n" + closingCode;
+          }
+        }
+      }
+
+      // Añadir mensajes de log para depuración
+      if (testCode) {
+        console.log(`Tests cargados para lenguaje ID: ${selectedLanguage.value}`);
+      } else {
+        console.log(`No se encontraron tests para el lenguaje ID: ${selectedLanguage.value}`);
       }
 
       return testCode;
     };
-    
+
     const submitCode = async () => {
       if (isHistoryMode.value) return;
-      
+
       if (!editorRef.value || !currentExercise.value) return;
 
       try {
@@ -1014,6 +1591,13 @@ def ejecutar_tests_avanzados(func, casos_prueba, mostrar_detalle=True):
 
         const ejerciciosParaEnviar = [];
 
+        // CORREGIDO: Obtener userId usando la función
+        const userId = getCurrentUserId();
+        const evaluationData = localStorage.getItem('currentEvaluation')
+          ? JSON.parse(localStorage.getItem('currentEvaluation'))
+          : null;
+        const evaluationId = evaluationData?.id || 'unknown';
+
         for (const ejercicio of exercises.value) {
           if (!ejercicio || !ejercicio.id) {
             console.warn(`Ejercicio sin ID detectado:`, ejercicio);
@@ -1024,14 +1608,21 @@ def ejecutar_tests_avanzados(func, casos_prueba, mostrar_detalle=True):
           const codeKey = getExerciseCodeKey(ejercicio.id);
           const codigo = localStorage.getItem(codeKey) || "";
 
+          // CORREGIDO: Usar userId obtenido de la función
+          const languageKey = `exercise_language_${userId}_${evaluationId}_${ejercicio.id}`;
+          const savedLanguage = localStorage.getItem(languageKey);
+          const languageId = savedLanguage ? parseInt(savedLanguage) : 71; // Python por defecto
+
           console.log(`Ejercicio ID: ${ejercicio.id}, Título: ${ejercicio.titulo || 'Sin título'}`);
           console.log(`- Código encontrado: ${codigo ? 'Sí' : 'No'} (${codigo?.length || 0} caracteres)`);
+          console.log(`- Lenguaje: ${languageId}`);
 
           const codigoFinal = codigo || generateDefaultTemplate(ejercicio);
 
           ejerciciosParaEnviar.push({
             ejercicio_id: ejercicio.id,
-            codigo: codigoFinal
+            codigo: codigoFinal,
+            language_id: languageId
           });
 
           console.log(`✅ Ejercicio ID ${ejercicio.id} añadido para envío (${codigoFinal.length} caracteres)`);
@@ -1043,16 +1634,12 @@ def ejecutar_tests_avanzados(func, casos_prueba, mostrar_detalle=True):
 
         console.log(`🧮 Total de ejercicios preparados para envío: ${ejerciciosParaEnviar.length}`);
 
-        const evaluationData = localStorage.getItem('currentEvaluation')
-          ? JSON.parse(localStorage.getItem('currentEvaluation'))
-          : null;
-
         if (!evaluationData || !evaluationData.id) {
           throw new Error("No se pudo determinar el ID de la evaluación actual");
         }
 
-        const evaluationId = evaluationData.id;
-        console.log(`📝 Evaluación ID: ${evaluationId}, Título: ${evaluationData.titulo || evaluationData.title || 'Sin título'}`);
+        const evaluationIdFinal = evaluationData.id;
+        console.log(`📝 Evaluación ID: ${evaluationIdFinal}, Título: ${evaluationData.titulo || evaluationData.title || 'Sin título'}`);
 
         console.log("🔄 Verificando disponibilidad de Judge0...");
         try {
@@ -1068,20 +1655,18 @@ def ejecutar_tests_avanzados(func, casos_prueba, mostrar_detalle=True):
           throw new Error("No se pudo verificar la disponibilidad de Judge0");
         }
 
-        console.log(`🚀 Enviando batch de ${ejerciciosParaEnviar.length} ejercicios para evaluación ${evaluationId}`);
+        console.log(`🚀 Enviando batch de ${ejerciciosParaEnviar.length} ejercicios para evaluación ${evaluationIdFinal}`);
 
         const response = await evaluationsService.submitBatch({
-          evaluacion_id: evaluationId,
+          evaluacion_id: evaluationIdFinal,
           ejercicios: ejerciciosParaEnviar,
           useJudge0: true
         }, exercises.value);
 
-
         console.log("✅ Respuesta del procesamiento batch recibida:", response.data);
 
         if (response.data && response.data.success) {
-          const userId = getCurrentUserId();
-
+          // CORREGIDO: userId ya está definido arriba
           console.log("🔍 Guardando puntuaciones para usuario", userId);
           console.log("Total score:", response.data.total_puntaje);
           console.log("Max score:", response.data.puntaje_maximo);
@@ -1118,8 +1703,8 @@ def ejecutar_tests_avanzados(func, casos_prueba, mostrar_detalle=True):
 
           // Finalizar la evaluación en el backend
           try {
-            console.log("🏁 Finalizando evaluación en el backend...");
-            await evaluationsService.finishEvaluation(evaluationId);
+            console.log(`🏁 Finalizando evaluación con ID: ${evaluationIdFinal}`);
+            await evaluationsService.finishEvaluation(evaluationIdFinal);
             console.log("✅ Evaluación finalizada correctamente");
           } catch (finishError) {
             console.error("Error al finalizar evaluación:", finishError);
@@ -1161,20 +1746,10 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
     };
 
     const generateDefaultTemplate = (exercise) => {
-      let template = '# ' + (exercise.titulo || 'Ejercicio') + '\n\n';
-
-      if (exercise.tipo === 'practico') {
-        template += 'def solucion():\n';
-        template += '    # Tu código aquí\n';
-        template += '    return\n\n';
-        template += '# No modifiques esta parte\n';
-        template += 'if __name__ == "__main__":\n';
-        template += '    print(solucion())\n';
-      } else {
-        template += '# Tu código aquí\n';
-      }
-
-      return template;
+      // Para cualquier lenguaje (incluido Python) solo mostrar un mensaje informativo
+      const langName = availableLanguages.value.find(l => l.id === selectedLanguage.value)?.name ||
+        `Lenguaje ID ${selectedLanguage.value}`;
+      return `# No hay plantilla específica para ${langName} en este ejercicio\n# Por favor, implementa tu solución aquí`;
     };
 
     const createResultSummary = (data) => {
@@ -1211,10 +1786,10 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
 
       return summary;
     };
-    
+
     const saveExerciseScore = (exerciseId, score, maxScore) => {
       if (isHistoryMode.value) return false;
-      
+
       try {
         const scoresKey = getScoresKey();
         let scores = {};
@@ -1263,7 +1838,7 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
 
     const finishEvaluation = async () => {
       if (isHistoryMode.value) return;
-      
+
       try {
         verifyDataPersistence();
 
@@ -1287,7 +1862,7 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
 
     const checkHistoryMode = () => {
       console.log("Verificando modo historial...", isHistoryMode.value);
-      
+
       if (isHistoryMode.value) {
         console.log("En modo historial. Deshabilitando botones de interacción.");
       }
@@ -1296,14 +1871,14 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
     const startEvaluation = async (evaluation) => {
       try {
         const response = await evaluationsService.getDetallesEvaluacion(evaluation.id);
-        
+
         localStorage.setItem('currentEvaluation', JSON.stringify(response.data));
-        
+
         const userId = getCurrentUserId();
         localStorage.setItem(`evaluationStartTime_${userId}`, Date.now().toString());
-        
+
         console.log('✅ Evaluación iniciada con datos completos:', response.data);
-        
+
         return response.data;
       } catch (error) {
         console.error('Error al iniciar evaluación:', error);
@@ -1311,7 +1886,8 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
         throw error;
       }
     };
-    
+
+
     onMounted(async () => {
       const userId = getCurrentUserId();
       const evaluationId = evaluation.value?.id;
@@ -1319,6 +1895,13 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
       console.log("PracticalRightPanel montado con usuario:", userId);
       console.log("Evaluación ID:", evaluationId);
       console.log("Estado modo historia:", isHistoryMode.value);
+
+      // Inicializar la variable de entorno
+      try {
+        isDevelopment.value = import.meta.env.DEV || false;
+      } catch (e) {
+        isDevelopment.value = false;
+      }
 
       // Limpiar estados previos para esta evaluación
       if (evaluationId && exercises.value && exercises.value.length > 0) {
@@ -1329,7 +1912,7 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
             // Claves antiguas sin evaluationId
             const oldStatusKey = `exercise_status_${userId}_${ex.id}`;
             localStorage.removeItem(oldStatusKey);
-            
+
             // Nueva clave con evaluationId
             const statusKey = getExerciseStatusKey(ex.id);
             localStorage.removeItem(statusKey);
@@ -1353,7 +1936,15 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
       }
 
       // Verificar estado inicial de modo historia
-      checkHistoryMode();
+      
+      
+      // Verificar configuración desde servidor PRIMERO
+      console.log("🔧 Cargando configuración del selector de lenguajes...");
+      await checkLanguageSelectorEnabled();
+
+
+      // Configurar listener de cambios
+      setupConfigListener();
 
       // Manejar eventos de teclado
       const handleKeyDown = (e) => {
@@ -1377,8 +1968,45 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
           isExerciseComplete.value = true;
         }
       });
+
+      checkLanguageSelectorEnabled();
+
+
+      // Cargar lenguaje desde historial si estamos en modo historial
+      if (isHistoryMode.value && currentExercise.value) {
+        console.log('🔍 Modo historial detectado, cargando lenguaje desde ejercicio');
+
+        // Intentar obtener el lenguaje desde el ejercicio del historial
+        if (currentExercise.value.language_id) {
+          selectedLanguage.value = currentExercise.value.language_id;
+          console.log(`📝 Lenguaje fijado desde historial: ${selectedLanguage.value}`);
+        } else {
+          // Si no hay language_id, usar Python por defecto
+          selectedLanguage.value = 71;
+          console.log('⚠️ No se encontró lenguaje en historial, usando Python por defecto');
+        }
+
+        // NO permitir cambios posteriores
+        localStorage.setItem('selected_language_id', selectedLanguage.value.toString());
+      }
+
+      // Cargar lenguajes independientemente
+      try {
+        console.log("Cargando lenguajes disponibles...");
+        await loadAvailableLanguages();
+        console.log(`Se cargaron ${availableLanguages.value.length} lenguajes`);
+      } catch (error) {
+        console.error("Error al cargar lenguajes:", error);
+      }
+
+      // Si está habilitado, inicializar correctamente
+      if (isLanguageSelectorEnabled.value) {
+        console.log("Selector de lenguajes HABILITADO - debería mostrarse");
+      } else {
+        console.log("Selector de lenguajes DESHABILITADO - no se mostrará");
+      }
     });
-    
+
     onBeforeUnmount(() => {
       if (!isHistoryMode.value && editorRef.value && editorRef.value.saveCurrentCode && currentExercise.value) {
         editorRef.value.saveCurrentCode();
@@ -1412,8 +2040,142 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
       confirmSubmit,
       editorRef
     });
-    
-    
+
+
+    // Watcher para cambiar lenguaje automáticamente cuando cambia el ejercicio
+    watch(currentExercise, (newExercise, oldExercise) => {
+      if (newExercise && newExercise.id !== oldExercise?.id) {
+        
+        // MODO HISTORIAL: obtener lenguaje desde el ejercicio
+        if (isHistoryMode.value) {
+          console.log('🔍 HISTORIAL DEBUG - Ejercicio completo:', newExercise);
+          console.log('🔍 HISTORIAL DEBUG - ID:', newExercise.id);
+          console.log('🔍 HISTORIAL DEBUG - language_id:', newExercise.language_id);
+          console.log('🔍 HISTORIAL DEBUG - codigo:', newExercise.codigo);
+          console.log('🔍 HISTORIAL DEBUG - template:', newExercise.template);
+          console.log('🔍 HISTORIAL DEBUG - contenido:', newExercise.contenido);
+          
+          // Verificar todas las fuentes posibles de código
+          let codigoParaDetectar = '';
+          
+          if (newExercise.codigo) {
+            codigoParaDetectar = newExercise.codigo;
+            console.log('🔍 HISTORIAL DEBUG - Usando newExercise.codigo');
+          } else if (newExercise.template) {
+            codigoParaDetectar = newExercise.template;
+            console.log('🔍 HISTORIAL DEBUG - Usando newExercise.template');
+          } else if (newExercise.contenido && newExercise.contenido.template) {
+            codigoParaDetectar = newExercise.contenido.template;
+            console.log('🔍 HISTORIAL DEBUG - Usando newExercise.contenido.template');
+          }
+          
+          console.log('🔍 HISTORIAL DEBUG - Código final para detectar:', codigoParaDetectar);
+          
+          // DETECCIÓN DE LENGUAJE basada en el código
+          let detectedLanguage = 71; // Python por defecto
+          
+          // Detectar JavaScript (mejorado)
+          if (codigoParaDetectar.includes('console.log') ||
+            codigoParaDetectar.includes('function') ||
+            codigoParaDetectar.includes('let ') ||
+            codigoParaDetectar.includes('const ') ||
+            codigoParaDetectar.includes('var ') ||
+            codigoParaDetectar.includes('document.') ||
+            codigoParaDetectar.includes('window.') ||
+            codigoParaDetectar.includes('alert(') ||
+            codigoParaDetectar.includes('=>') ||
+            codigoParaDetectar.includes('console.')) {
+            detectedLanguage = 63; // JavaScript
+            console.log('🔍 HISTORIAL DEBUG - Detectado JavaScript');
+          }
+          // Detectar Java (mejorado)
+          else if (codigoParaDetectar.includes('public class') ||
+            codigoParaDetectar.includes('system.out.print') ||
+            codigoParaDetectar.includes('public static void main') ||
+            codigoParaDetectar.includes('string[]') ||
+            codigoParaDetectar.includes('system.out.println')) {
+            detectedLanguage = 62; // Java
+            console.log('🔍 HISTORIAL DEBUG - Detectado Java');
+          }
+          // Detectar C++ (mejorado)
+          else if (codigoParaDetectar.includes('#include') ||
+            codigoParaDetectar.includes('std::') ||
+            codigoParaDetectar.includes('cout') ||
+            codigoParaDetectar.includes('cin') ||
+            codigoParaDetectar.includes('namespace std')) {
+            detectedLanguage = 54; // C++
+            console.log('🔍 HISTORIAL DEBUG - Detectado C++');
+          }
+          // Detectar C (mejorado)
+          else if ((codigoParaDetectar.includes('#include') && codigoParaDetectar.includes('printf')) ||
+            codigoParaDetectar.includes('scanf') ||
+            codigoParaDetectar.includes('main()')) {
+            detectedLanguage = 50; // C
+            console.log('🔍 HISTORIAL DEBUG - Detectado C');
+          }
+          // Python - verificar patrones específicos
+          else if (codigoParaDetectar.includes('print(') ||
+            codigoParaDetectar.includes('def ') ||
+            codigoParaDetectar.includes('import ') ||
+            codigoParaDetectar.includes('from ') ||
+            codigoParaDetectar.includes('elif') ||
+            codigoParaDetectar.includes('range(')) {
+            detectedLanguage = 71; // Python
+            console.log('🔍 HISTORIAL DEBUG - Detectado Python');
+          }
+          // Por defecto mantener Python
+          else {
+            detectedLanguage = 71; // Python
+            console.log('🔍 HISTORIAL DEBUG - Detectado Python (por defecto)');
+          }
+          
+          // Usar language_id si existe, sino el detectado
+
+          let finalLanguage = detectedLanguage;
+          
+          // Solo usar language_id original si:
+          // 1. No se pudo detectar nada (detectedLanguage es 71 por defecto), Y
+          // 2. Existe un language_id específico diferente de Python
+          if (detectedLanguage === 71 && newExercise.language_id && newExercise.language_id !== 71) {
+            finalLanguage = newExercise.language_id;
+            console.log(`🔍 HISTORIAL DEBUG - Usando language_id original porque no se detectó nada específico`);
+          } else if (detectedLanguage !== 71) {
+            console.log(`🔍 HISTORIAL DEBUG - Usando lenguaje detectado porque hay evidencia clara en el código`);
+          }
+          
+          console.log(`🔍 HISTORIAL DEBUG - Lenguaje final: ${finalLanguage}`);
+          console.log(`🔍 HISTORIAL DEBUG - Original language_id: ${newExercise.language_id}`);
+          console.log(`🔍 HISTORIAL DEBUG - Detectado: ${detectedLanguage}`);
+          
+          selectedLanguage.value = finalLanguage;
+          
+          // Actualizar localStorage para mantener consistencia
+          localStorage.setItem('selected_language_id', selectedLanguage.value.toString());
+          return;
+        }
+
+        // MODO NORMAL: cargar lenguaje guardado para este ejercicio
+        const userId = getCurrentUserId();
+        const evaluationData = localStorage.getItem('currentEvaluation')
+          ? JSON.parse(localStorage.getItem('currentEvaluation'))
+          : null;
+        const evaluationId = evaluationData?.id || 'unknown';
+
+        const languageKey = `exercise_language_${userId}_${evaluationId}_${newExercise.id}`;
+        const savedLanguage = localStorage.getItem(languageKey);
+
+        if (savedLanguage) {
+          const langId = parseInt(savedLanguage);
+          console.log(`Cambiando automáticamente al lenguaje ${langId} para ejercicio ${newExercise.id}`);
+          selectedLanguage.value = langId;
+          localStorage.setItem('selected_language_id', langId.toString());
+        } else {
+          console.log(`No hay lenguaje guardado para ejercicio ${newExercise.id}, manteniendo: ${selectedLanguage.value}`);
+        }
+      }
+    }, { immediate: false });
+
+
     return {
       editorRef,
       hintContent,
@@ -1443,6 +2205,12 @@ Por favor, guarde su código e intente nuevamente más tarde.`;
       selectedTheme,
       changeTheme,
       isHistoryMode,
+      isDevelopment,
+      availableLanguages,
+      selectedLanguage,
+      isLanguageSelectorEnabled,
+      changeLanguage,
+      getLanguageName
     };
   }
 };
@@ -1504,7 +2272,8 @@ body.overflow-hidden {
 
 /* Nuevos estilos para el modo historial */
 .right-panel-wrapper.history-mode {
-  border-top: 4px solid #4C4CFF; /* Borde azul destacado para indicar modo historial */
+  border-top: 4px solid #4C4CFF;
+  /* Borde azul destacado para indicar modo historial */
   position: relative;
 }
 
@@ -1515,7 +2284,8 @@ body.overflow-hidden {
   left: 0;
   right: 0;
   bottom: 0;
-  pointer-events: none; /* Permite que los clicks pasen a través */
+  pointer-events: none;
+  /* Permite que los clicks pasen a través */
   background: linear-gradient(to bottom, rgba(76, 76, 255, 0.05), transparent 10%);
   z-index: 1;
 }
@@ -1662,7 +2432,8 @@ body.overflow-hidden {
 }
 
 /* Estilo para botones deshabilitados - Modo Historia */
-.helper-button:disabled, .action-button:disabled {
+.helper-button:disabled,
+.action-button:disabled {
   opacity: 0.6 !important;
   cursor: not-allowed !important;
   background-color: #2A2A30 !important;
@@ -1709,18 +2480,20 @@ body.overflow-hidden {
 /* Botón de TEST con nuevo color */
 .test-button {
   background-color: #121216;
-    color: #FFFFFF;
-    border-color: #00B294;
+  color: #FFFFFF;
+  border-color: #00B294;
 }
 
 .test-button:hover:not(:disabled) {
-  background-color: #34495E; /* Azul oscuro más claro al pasar el mouse */
+  background-color: #34495E;
+  /* Azul oscuro más claro al pasar el mouse */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Estilo especial para test completo */
 .test-button:disabled:not(.is-loading) {
-  background-color: #27AE60; /* Verde para indicar éxito */
+  background-color: #27AE60;
+  /* Verde para indicar éxito */
   color: white;
   border-color: #27AE60;
 }
@@ -1733,7 +2506,8 @@ body.overflow-hidden {
 }
 
 .submit-button:hover:not(:disabled) {
-  background-color: #2D7D46; /* Verde oscuro más claro al pasar el mouse */
+  background-color: #2D7D46;
+  /* Verde oscuro más claro al pasar el mouse */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -1834,7 +2608,8 @@ body.overflow-hidden {
   margin-bottom: 16px;
 }
 
-.warning-icon, .success-icon {
+.warning-icon,
+.success-icon {
   font-size: 20px;
 }
 
@@ -1882,8 +2657,13 @@ body.overflow-hidden {
 
 /* Animaciones */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
@@ -1891,6 +2671,7 @@ body.overflow-hidden {
     transform: translateY(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -1903,28 +2684,30 @@ body.overflow-hidden {
     min-width: 80px;
     padding: 8px;
   }
-  
+
   .action-button span:not(.button-icon) {
     display: none;
   }
-  
+
   .button-icon {
     font-size: 18px;
     margin: 0;
   }
 
-  
-  .helper-text, .action-text {
+
+  .helper-text,
+  .action-text {
     display: none;
   }
-  
-  .helper-button, .action-button {
+
+  .helper-button,
+  .action-button {
     padding: 8px;
     width: 36px;
     height: 36px;
     justify-content: center;
   }
-  
+
   .modal-card {
     width: 95%;
   }
@@ -1945,8 +2728,13 @@ body.overflow-hidden {
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Animación de puntos cargando */
@@ -1975,10 +2763,13 @@ body.overflow-hidden {
 }
 
 @keyframes dot-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(0.8);
     opacity: 0.6;
   }
+
   50% {
     transform: scale(1.2);
     opacity: 1;
@@ -2004,7 +2795,7 @@ body.overflow-hidden {
   .loading-dots {
     height: 16px;
   }
-  
+
   .loading-dots .dot {
     width: 4px;
     height: 4px;
@@ -2013,8 +2804,8 @@ body.overflow-hidden {
 
 /* Estilos para el selector de temas */
 .theme-selector {
-  margin-right: 10px; 
-  margin-left: auto; 
+  margin-right: 10px;
+  margin-left: auto;
   position: relative;
 }
 
@@ -2075,7 +2866,7 @@ body.overflow-hidden {
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
+
   .theme-selector::after {
     right: 6px;
   }
@@ -2095,7 +2886,8 @@ body.overflow-hidden {
   gap: 8px;
   z-index: 999;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  pointer-events: none; /* Para que no interfiera con la interacción */
+  pointer-events: none;
+  /* Para que no interfiera con la interacción */
   animation: fadeInDown 0.5s ease-out;
   border: 1px solid #4C4CFF;
 }
@@ -2115,9 +2907,111 @@ body.overflow-hidden {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+
+/* Estilos para el selector de lenguajes */
+.language-selector {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+  position: relative;
+}
+
+.language-select {
+  background-color: #32323A;
+  color: var(--color-text-secondary, #E0E0E0);
+  border: 1px solid #3A3A45;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  appearance: none;
+  padding-right: 28px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.language-select:hover:not(:disabled) {
+  background-color: #3A3A45;
+  color: var(--color-text-primary, #FFFFFF);
+  border-color: var(--color-primary, #EBB300);
+}
+
+.language-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(235, 179, 0, 0.3);
+  border-color: var(--color-primary, #EBB300);
+}
+
+/* Flecha personalizada para el select de lenguajes */
+.language-selector::after {
+  content: "▼";
+  font-size: 10px;
+  color: var(--color-text-secondary, #E0E0E0);
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.language-count {
+  font-size: 12px;
+  color: var(--color-text-muted, #9090A0);
+  margin-left: 5px;
+}
+
+/* Media queries para el selector de lenguajes */
+@media (max-width: 768px) {
+  .language-select {
+    width: 100px;
+    font-size: 12px;
+    min-width: auto;
+  }
+
+  .language-selector {
+    margin-right: 5px;
+  }
+
+  .language-count {
+    display: none;
+  }
+}
+
+.language-selector-debug {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+  font-size: 14px;
+  color: var(--color-text-muted, #9090A0);
+}
+
+/* Indicador de lenguaje en modo historial */
+.language-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: rgba(76, 76, 255, 0.1);
+  border: 1px solid #4C4CFF;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.language-label {
+  color: var(--color-text-muted, #9090A0);
+  font-weight: 500;
+}
+
+.language-name {
+  color: #4C4CFF;
+  font-weight: 600;
 }
 </style>

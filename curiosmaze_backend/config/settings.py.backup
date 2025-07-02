@@ -275,4 +275,3 @@ CSRF_COOKIE_HTTPONLY = False     # Permite que JavaScript acceda a la cookie CSR
 
 
 
-

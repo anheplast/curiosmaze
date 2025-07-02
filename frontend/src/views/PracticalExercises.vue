@@ -67,6 +67,10 @@ export default {
     const rightPanelRef = ref(null);
     const notificationRef = inject('notificationRef', ref(null));
 
+    const getCurrentUserId = () => {
+      return localStorage.getItem('user_id') || 'anonymous';
+    };
+
     const showNotification = (message, type = 'info', duration = 3000) => {
       if (notificationRef?.value?.showNotification) {
         notificationRef.value.showNotification(message, type, duration);
@@ -83,8 +87,20 @@ export default {
       }
     };
 
-    const viewMode = ref(route.query.mode || 'normal');
-    const isHistoryMode = computed(() => viewMode.value === 'history');
+    const viewMode = ref(route.query.mode || localStorage.getItem('view_mode') || 'normal');
+    const isHistoryMode = computed(() => {
+      const routeMode = route.query.mode === 'history';
+      const localMode = localStorage.getItem('view_mode') === 'history';
+      const currentMode = viewMode.value === 'history';
+
+      const isHistory = routeMode || localMode || currentMode;
+
+      if (isHistory) {
+        console.log('Modo historial detectado:', { routeMode, localMode, currentMode });
+      }
+
+      return isHistory;
+    });
 
     // Estados principales
     const evaluationId = ref(route.query.evaluation_id);
@@ -156,11 +172,12 @@ export default {
               tiempo_total: response.data.tiempo_total
             };
 
-            // Procesa ejercicios desde historial
+            // Procesar ejercicios desde historial
             exercises.value = historialData.ejercicios.map(ej => ({
               ...ej,
               // Asegura que el codigo se cargue
               template: ej.codigo,
+              language_id: ej.language_id || 71, // Python por defecto
               contenido: {
                 restricciones: ej.restricciones || '',
                 formato_salida: ej.formato_salida || '',
@@ -380,8 +397,35 @@ export default {
           contenido: ejercicioObj.contenido || {},
           pista: ejercicioObj.pista || '',
           etiquetas: ejercicioObj.etiquetas || [],
-          credito: ejercicioObj.credito || ''
+          credito: ejercicioObj.credito || '',
+          
         };
+
+        // En modo historial, preservar lenguaje usado
+        if (isHistoryMode.value) {
+          // Buscar el language_id en los detalles del historial si existe
+          const historialData = localStorage.getItem('currentEvaluation');
+          if (historialData) {
+            try {
+              const parsedHistorial = JSON.parse(historialData);
+              if (parsedHistorial.respuestas) {
+                const respuestaEjercicio = parsedHistorial.respuestas.find(r => r.ejercicio_id === ejercicioProcesado.id);
+                if (respuestaEjercicio && respuestaEjercicio.language_id) {
+                  ejercicioProcesado.language_id = respuestaEjercicio.language_id;
+                  console.log(`🔧 Language ID ${respuestaEjercicio.language_id} asignado a ejercicio ${ejercicioProcesado.id} desde historial`);
+                } else {
+                  ejercicioProcesado.language_id = 71; // Python por defecto
+                  console.log(`⚠️ No se encontró language_id para ejercicio ${ejercicioProcesado.id}, usando Python por defecto`);
+                }
+              }
+            } catch (e) {
+              console.warn('Error al parsear historial para language_id:', e);
+              ejercicioProcesado.language_id = 71;
+            }
+          } else {
+            ejercicioProcesado.language_id = 71;
+          }
+        }
 
         // Después de procesar cada ejercicio
         console.log('Ejercicio procesado:', {
@@ -455,34 +499,9 @@ export default {
     const markExerciseCompleted = (exerciseId) => {
       if (!exerciseId) return;
 
-      console.log(`Marcando ejercicio ${exerciseId} como completado`);
+      console.log(`markExerciseCompleted llamado para ejercicio ${exerciseId} - considerando usar updateExerciseStatus`);
 
-      // Guardar en localStorage
-      let completed = [];
-      try {
-        const stored = localStorage.getItem('completed_exercises');
-        if (stored) {
-          completed = JSON.parse(stored);
-        }
-      } catch (e) {
-        console.warn('Error al leer ejercicios completados:', e);
-      }
-
-      // Añadir si no existe
-      if (!completed.includes(exerciseId)) {
-        completed.push(exerciseId);
-        localStorage.setItem('completed_exercises', JSON.stringify(completed));
-
-        // Marcar estado
-        localStorage.setItem(`exercise_status_${exerciseId}`, 'completed');
-
-        // Emite un evento para notificar a otros componentes
-        window.dispatchEvent(new CustomEvent('exercise-completed', {
-          detail: { exerciseId: exerciseId }
-        }));
-      }
-
-      // Verifica si todos los ejercicios están completados
+      // Solo verificar si todos están completados
       checkAllExercisesCompleted();
     };
 
@@ -490,8 +509,12 @@ export default {
     const checkAllExercisesCompleted = () => {
       if (!exercises.value || exercises.value.length === 0) return;
 
+      const userId = getCurrentUserId();
+      const evaluationId = evaluation.value?.id || 'unknown';
+
       const allCompleted = exercises.value.every(exercise => {
-        return localStorage.getItem(`exercise_status_${exercise.id}`) === 'completed';
+        const statusKey = `exercise_status_${userId}_${evaluationId}_${exercise.id}`;
+        return localStorage.getItem(statusKey) === 'completed';
       });
 
       if (allCompleted) {
@@ -517,6 +540,12 @@ export default {
     // Valida tiempo restante y finaliza cuando se acabe
     const checkRemainingTime = () => {
       console.log('⏱️ [CHECK-TIME] Verificando tiempo restante...');
+
+      // NUEVA VERIFICACIÓN: No verificar tiempo en modo historial
+      if (isHistoryMode.value || viewMode.value === 'history') {
+        console.log('⏱️ [CHECK-TIME] Modo historial detectado, omitiendo verificación de tiempo');
+        return;
+      }
 
       // Evita procesos paralelos
       if (isProcessingJudge0.value) {
@@ -607,7 +636,7 @@ export default {
           }
 
           // INICIAR PROCESO DE FINALIZACIÓN
-          // Usamos directamente la función, NO un setTimeout
+          // Se usa directamente la función, NO un setTimeout
           autoFinishEvaluation();
         }
       }
@@ -656,9 +685,11 @@ export default {
         // PASO 2: Recopilar todos los códigos de ejercicios
         updateProgress('Recopilando todos los ejercicios...');
 
+        // CORREGIDO: Definir userId al principio de la función
+        const userId = getCurrentUserId();
+
         // USAR LA MISMA CLAVE QUE EditorCodemirror
         const getExerciseCodeKey = (exerciseId) => {
-          const userId = localStorage.getItem('user_id') || 'anonymous';
           const evalData = localStorage.getItem('currentEvaluation');
           let evaluationId = 'unknown';
 
@@ -673,6 +704,7 @@ export default {
         };
 
         const ejerciciosParaEnviar = [];
+        const evaluationId = evaluation.value?.id || 'unknown';
 
         for (const ejercicio of exercises.value) {
           if (!ejercicio || !ejercicio.id) {
@@ -683,11 +715,17 @@ export default {
           const codeKey = getExerciseCodeKey(ejercicio.id);
           const codigo = localStorage.getItem(codeKey) || "";
 
-          console.log(`[AUTO-FINISH] Ejercicio ${ejercicio.id}: ${codigo.length} caracteres`);
+          // CORREGIDO: userId ya está definido arriba
+          const languageKey = `exercise_language_${userId}_${evaluationId}_${ejercicio.id}`;
+          const savedLanguage = localStorage.getItem(languageKey);
+          const languageId = savedLanguage ? parseInt(savedLanguage) : 71; // Python por defecto
+
+          console.log(`[AUTO-FINISH] Ejercicio ${ejercicio.id}: ${codigo.length} caracteres, lenguaje: ${languageId}`);
 
           ejerciciosParaEnviar.push({
             ejercicio_id: ejercicio.id,
-            codigo: codigo
+            codigo: codigo,
+            language_id: languageId
           });
         }
 
@@ -749,7 +787,6 @@ export default {
         // PASO 6: Guarda resultados de forma MANUAL si no esta funcionando Judge0
         updateProgress('Guardando resultados y códigos...');
 
-        const userId = localStorage.getItem('user_id') || 'anonymous';
         let totalScore = 0;
         let maxScore = 0;
         let scaledScore = 0;
@@ -767,7 +804,7 @@ export default {
 
         // GUARDA DE MANERA SECUENCIAL - IMPORTANTE
         await new Promise(resolve => {
-          // 1. Guarda puntuaciones
+          // 1. Guarda puntuaciones - userId ya está definido
           localStorage.setItem(`evaluation_total_score_${userId}`, totalScore);
           localStorage.setItem(`evaluation_max_score_${userId}`, maxScore);
           localStorage.setItem(`evaluation_scaled_score_${userId}`, scaledScore);
@@ -845,7 +882,8 @@ export default {
       } catch (error) {
         console.error('❌ [AUTO-FINISH] Error en finalización automática:', error);
 
-        const userId = localStorage.getItem('user_id');
+        // CORREGIDO: definir userId aquí también
+        const userId = getCurrentUserId();
         localStorage.setItem(`evaluation_error_${userId}`, 'true');
         localStorage.setItem(`evaluationEndTime_${userId}`, Date.now().toString());
 
@@ -947,7 +985,7 @@ export default {
         calculateTotalScore();
 
         // Guarda timestamp de finalización y ID de evaluación
-        const userId = localStorage.getItem('user_id') || 'anonymous';
+        const userId = getCurrentUserId();
         localStorage.setItem(`evaluationEndTime_${userId}`, Date.now().toString());
 
         // Guarda ID de evaluación usando userId como clave
@@ -1026,15 +1064,23 @@ export default {
       }
     };
 
-    // Guarda automáticamente el estado de la evaluación
     const setupAutoSave = () => {
+      // No configurar auto-guardado en modo historial
+      if (isHistoryMode.value || viewMode.value === 'history') {
+        console.log('Modo historial detectado - NO se configura auto-guardado');
+        return;
+      }
+
       // Verifica y guardar cada minuto
       autoSaveInterval = setInterval(() => {
-        // Verifica tiempo restante
-        checkRemainingTime();
+        // Verifica tiempo restante (solo si no es modo historial)
+        if (!isHistoryMode.value && viewMode.value !== 'history') {
+          checkRemainingTime();
+        }
 
-        // Guarda estado actual si hay un panel derecho con editor
-        if (rightPanelRef.value && rightPanelRef.value.editorRef &&
+        // Guarda estado actual si hay un panel derecho con editor (solo si no es modo historial)
+        if (!isHistoryMode.value && viewMode.value !== 'history' &&
+          rightPanelRef.value && rightPanelRef.value.editorRef &&
           rightPanelRef.value.editorRef.saveCurrentCode) {
           rightPanelRef.value.editorRef.saveCurrentCode();
           console.log('Auto-guardado activado');
@@ -1094,6 +1140,58 @@ export default {
       }
     });
 
+    watch(() => route.query.mode, (newMode) => {
+      if (newMode) {
+        console.log('Cambio de modo detectado en ruta:', newMode);
+        viewMode.value = newMode;
+
+        if (newMode === 'history') {
+          localStorage.setItem('view_mode', 'history');
+        }
+      }
+    }, { immediate: true });
+
+    // Observar cambios en el modo historial para detener intervalos
+    watch(isHistoryMode, (newIsHistory, oldIsHistory) => {
+      console.log('Cambio en modo historial detectado:', { antes: oldIsHistory, ahora: newIsHistory });
+
+      if (newIsHistory && !oldIsHistory) {
+        // Cambió a modo historial - detener todos los intervalos
+        console.log('Cambiando a modo historial - deteniendo intervalos');
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          console.log('Intervalo de tiempo detenido por cambio a modo historial');
+        }
+
+        if (autoSaveInterval) {
+          clearInterval(autoSaveInterval);
+          autoSaveInterval = null;
+          console.log('Intervalo de auto-guardado detenido por cambio a modo historial');
+        }
+
+        // Actualizar localStorage
+        localStorage.setItem('view_mode', 'history');
+      } else if (!newIsHistory && oldIsHistory) {
+        // Cambió de modo historial a modo normal - reiniciar intervalos si es necesario
+        console.log('Cambiando de modo historial a modo normal - reiniciando intervalos');
+
+        if (!timerInterval && evaluation.value) {
+          timerInterval = setInterval(checkRemainingTime, 1000);
+          console.log('Intervalo de tiempo reiniciado');
+        }
+
+        if (!autoSaveInterval) {
+          setupAutoSave();
+          console.log('Auto-guardado reiniciado');
+        }
+
+        // Limpiar localStorage
+        localStorage.removeItem('view_mode');
+      }
+    }, { immediate: true });
+
     onMounted(async () => {
       nextTick(() => {
         if (leftPanelRef.value) {
@@ -1107,11 +1205,13 @@ export default {
       console.log('PracticalExercises montado, iniciando carga de datos');
       await loadEvaluationData();
 
-      console.log('Modo historial activado para evaluación ID:', evaluationId.value);
-
-      // Configuraciones especiales para modo historial
-      // Esto impedirá cualquier modificación o envío
-      localStorage.setItem('view_mode', 'history');
+      // Verificar modo historial
+      if (isHistoryMode.value || viewMode.value === 'history') {
+        console.log('Modo historial activado para evaluación ID:', evaluationId.value);
+        // Configuraciones especiales para modo historial
+        // Esto impedirá cualquier modificación o envío
+        localStorage.setItem('view_mode', 'history');
+      }
 
       // Registrar inicio de evaluación y configurar auto-guardado
       nextTick(() => {
@@ -1129,8 +1229,13 @@ export default {
         registerEvaluationStart();
         setupAutoSave();
 
-        // Iniciar verificación de tiempo
-        timerInterval = setInterval(checkRemainingTime, 1000);
+        // MODIFICADO: Solo iniciar verificación de tiempo si NO estamos en modo historial
+        if (!isHistoryMode.value && viewMode.value !== 'history') {
+          console.log('Iniciando verificación de tiempo para evaluación activa');
+          timerInterval = setInterval(checkRemainingTime, 1000);
+        } else {
+          console.log('Modo historial detectado - NO se inicia verificación de tiempo');
+        }
 
         // Asegurar que los ejercicios se cargan correctamente
         console.log(`Cargados ${exercises.value.length} ejercicios`);
@@ -1289,7 +1394,7 @@ export default {
       // Solo manejar navegaciones no controladas por Vue Router
       if (window.location.pathname === '/practical-exercises') {
         e.preventDefault();
-        e.returnValue = ''; 
+        e.returnValue = '';
 
         // Usar el sistema de confirmación si está disponible
         if (notificationRef.value?.showConfirmation) {

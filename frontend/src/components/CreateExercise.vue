@@ -6,7 +6,8 @@
         <div class="header-content">
           <div class="header-text">
             <h1 class="title is-3">{{ isEditing ? 'Editar Ejercicio' : 'Crear Ejercicio' }}</h1>
-            <p class="subtitle is-5">¡Diseña ejercicios didácticos para evaluar las habilidades de programación de tus estudiantes!</p>
+            <p class="subtitle is-5">¡Diseña ejercicios didácticos para evaluar las habilidades de programación de tus
+              estudiantes!</p>
           </div>
           <div class="header-icon">
             <span class="icon-container">
@@ -28,7 +29,8 @@
           <label class="form-label" for="title">
             <i class="icon-prefix">📝</i> Título
           </label>
-          <input class="form-input" id="title" placeholder="Nombre descriptivo y conciso del ejercicio" v-model="form.title" name="title">
+          <input class="form-input" id="title" placeholder="Nombre descriptivo y conciso del ejercicio"
+            v-model="form.title" name="title">
           <span class="helper-text">Debe ser claro y específico sobre lo que el estudiante debe implementar</span>
         </div>
 
@@ -64,30 +66,23 @@
           <label class="form-label" for="tags">
             <i class="icon-prefix">🏷️</i> Etiquetas
           </label>
-          
+
           <div class="tags-input-container">
-            <input 
-              class="form-input" 
-              id="tags"
-              placeholder="Ingresa etiquetas separadas por comas (ej: algoritmos, arrays, ciclos)"
-              v-model="tagsInput"
-              @keydown.enter.prevent="processTagsFromInput"
-            >
+            <input class="form-input" id="tags"
+              placeholder="Ingresa etiquetas separadas por comas (ej: algoritmos, arrays, ciclos)" v-model="tagsInput"
+              @keydown.enter.prevent="processTagsFromInput">
           </div>
 
           <!-- Etiquetas seleccionadas -->
           <div class="selected-tags-container" v-if="form.tags.length > 0">
-            <div 
-              v-for="(tag, index) in form.tags" 
-              :key="tag"
-              class="tag-item"
-            >
+            <div v-for="(tag, index) in form.tags" :key="tag" class="tag-item">
               <span>{{ tag }}</span>
               <button class="tag-remove" @click.prevent="removeTag(index)">×</button>
             </div>
           </div>
-          
-          <span class="helper-text">Añade etiquetas para categorizar el ejercicio (Ej: "algoritmos", "arreglos", "recursión")</span>
+
+          <span class="helper-text">Añade etiquetas para categorizar el ejercicio (Ej: "algoritmos", "arreglos",
+            "recursión")</span>
         </div>
 
         <!-- Credit Section -->
@@ -95,13 +90,8 @@
           <label class="form-label" for="credit">
             <i class="icon-prefix">🔗</i> Créditos/Fuente
           </label>
-          <input 
-            class="form-input" 
-            id="credit" 
-            placeholder="Ej: Adaptado de codewars.com" 
-            v-model="form.credit"
-            name="credit" 
-            @keydown.enter.prevent>
+          <input class="form-input" id="credit" placeholder="Ej: Adaptado de codewars.com" v-model="form.credit"
+            name="credit" @keydown.enter.prevent>
           <span class="helper-text">Si el ejercicio fue adaptado de otra fuente, indica la referencia original</span>
         </div>
 
@@ -112,7 +102,8 @@
           </label>
           <textarea class="form-textarea" id="constraints" placeholder="Ej: 1 ≤ n ≤ 1000, valores no negativos"
             v-model="form.constraints" name="constraints" rows="3"></textarea>
-          <span class="helper-text">Especifica límites de valores, condiciones o requisitos que debe cumplir la solución</span>
+          <span class="helper-text">Especifica límites de valores, condiciones o requisitos que debe cumplir la
+            solución</span>
         </div>
 
         <!-- Pista para el estudiante -->
@@ -121,9 +112,10 @@
             <i class="icon-prefix">💡</i> Pista para el estudiante
           </label>
           <textarea class="form-textarea" id="hint"
-            placeholder="Sugerencia opcional que ayude a enfocar la solución sin resolverla completamente" v-model="form.hint" name="hint"
-            rows="3"></textarea>
-          <span class="helper-text">Esta pista estará disponible si el estudiante la solicita durante la evaluación</span>
+            placeholder="Sugerencia opcional que ayude a enfocar la solución sin resolverla completamente"
+            v-model="form.hint" name="hint" rows="3"></textarea>
+          <span class="helper-text">Esta pista estará disponible si el estudiante la solicita durante la
+            evaluación</span>
         </div>
 
         <!-- Multi-item Sections -->
@@ -137,11 +129,13 @@
               <span class="accordion-icon">{{ openSections.inputFormat ? '📂' : '📁' }}</span>
             </div>
             <div class="accordion-content" v-if="openSections.inputFormat">
-              <p class="section-hint">Describe cómo se proporcionarán los datos al programa (a través de input(), parámetros de función, etc.)</p>
+              <p class="section-hint">Describe cómo se proporcionarán los datos al programa (a través de input(),
+                parámetros de función, etc.)</p>
               <div class="multi-input-container">
                 <div v-for="(format, index) in form.inputFormats" :key="`input-format-${index}`"
                   class="multi-input-item">
-                  <textarea class="form-textarea" placeholder="Ej: Primer línea: entero n (número de elementos). Segunda línea: n enteros separados por espacios"
+                  <textarea class="form-textarea"
+                    placeholder="Ej: Primer línea: entero n (número de elementos). Segunda línea: n enteros separados por espacios"
                     v-model="form.inputFormats[index]" rows="3"></textarea>
                   <button type="button" @click.prevent="removeInputFormat(index)" class="delete-button">
                     <span class="sr-only">Eliminar</span>
@@ -164,11 +158,11 @@
               <span class="accordion-icon">{{ openSections.outputFormat ? '📂' : '📁' }}</span>
             </div>
             <div class="accordion-content" v-if="openSections.outputFormat">
-              <p class="section-hint">Especifica exactamente cómo debe mostrarse el resultado (valores, formato, orden)</p>
+              <p class="section-hint">Especifica exactamente cómo debe mostrarse el resultado (valores, formato, orden)
+              </p>
               <textarea class="form-textarea" id="output_format"
                 placeholder="Ej: Un entero único que representa la suma de todos los elementos"
-                v-model="form.outputFormat"
-                name="output_format" rows="3"></textarea>
+                v-model="form.outputFormat" name="output_format" rows="3"></textarea>
             </div>
           </div>
 
@@ -181,7 +175,8 @@
               <span class="accordion-icon">{{ openSections.samples ? '📂' : '📁' }}</span>
             </div>
             <div class="accordion-content" v-if="openSections.samples">
-              <p class="section-hint">Define ejemplos concretos con datos de entrada y resultados esperados para que el estudiante entienda qué debe hacer</p>
+              <p class="section-hint">Define ejemplos concretos con datos de entrada y resultados esperados para que el
+                estudiante entienda qué debe hacer</p>
               <div class="samples-container">
                 <!-- Sample Test Cards -->
                 <div v-for="(_, index) in form.sampleInputs" :key="`sample-${index}`" class="sample-card">
@@ -222,7 +217,7 @@
                         v-model="form.sampleExplanations[index]" rows="3"></textarea>
                     </div>
                     -->
-                    
+
                   </div>
                 </div>
 
@@ -233,25 +228,64 @@
             </div>
           </div>
 
-          <!-- Plantilla de Código -->
+
+          <!-- Plantilla por lenguaje -->
           <div class="accordion-item">
-            <div class="accordion-header" @click="toggleSection('template')">
+            <div class="accordion-header" @click="toggleSection('templates')">
               <h3 class="accordion-title">
-                <i class="icon-prefix">👨‍💻</i> Plantilla de Código
+                <i class="icon-prefix">📋</i> Plantillas por Lenguaje
               </h3>
-              <span class="accordion-icon">{{ openSections.template ? '📂' : '📁' }}</span>
+              <span class="accordion-icon">{{ openSections.templates ? '📂' : '📁' }}</span>
             </div>
-            <div class="accordion-content" v-if="openSections.template">
-              <p class="section-hint">Proporciona una estructura base o esqueleto de código que el estudiante deberá completar</p>
-              <textarea class="form-textarea" v-model="form.template" 
-                placeholder="def resolver_problema(datos):
-    # El estudiante debe implementar esta función
-    pass
-                
-# Puede incluir código auxiliar que no debe modificarse
-if __name__ == '__main__':
-    # Ejemplo de código de entrada/salida"
-                rows="10"></textarea>
+            <div class="accordion-content" v-if="openSections.templates">
+              <p class="section-hint">Define plantillas específicas para cada lenguaje de programación</p>
+
+              <!-- Selector de lenguaje para plantillas -->
+              <div class="language-selector-container">
+                <label class="form-label" for="template-language-selector">
+                  <i class="icon-prefix">🌐</i> Lenguaje para plantilla:
+                </label>
+                <select id="template-language-selector" v-model="selectedLanguageForTemplate" class="language-select"
+                  @change="handleTemplateLanguageChange">
+                  <option v-for="lang in availableLanguages" :key="lang.id" :value="lang.id">
+                    {{ lang.name }}
+                  </option>
+                </select>
+                <span class="language-count" v-if="availableLanguages.length">
+                  ({{ availableLanguages.length }} lenguajes disponibles)
+                </span>
+              </div>
+
+              <div class="template-container">
+                <div class="template-editor">
+                  <label class="form-label">Plantilla para {{ getCurrentLanguageName(selectedLanguageForTemplate)
+                    }}:</label>
+                  <textarea class="form-textarea" v-model="templatesForLanguages[selectedLanguageForTemplate]"
+                    :placeholder="getTemplatePlaceholder(selectedLanguageForTemplate)" rows="15"></textarea>
+                  <span class="helper-text">Esta plantilla se mostrará automáticamente cuando el estudiante seleccione
+                    este lenguaje</span>
+                </div>
+
+                <div class="template-info">
+                  <h4>Plantillas definidas:</h4>
+                  <div class="language-tag-container">
+                    <span v-for="(template, langId) in templatesForLanguages" :key="langId" class="language-tag"
+                      :class="{ 'active': template.trim().length > 0 }" :title="getLanguageName(langId)"
+                      @click="selectedLanguageForTemplate = parseInt(langId)">
+                      {{ getLanguageShortName(langId) }}
+                    </span>
+                  </div>
+                  <p class="template-info-text">
+                    Haz clic en un lenguaje para editar su plantilla. Las plantillas vacías mostrarán un mensaje
+                    predeterminado al estudiante.
+                  </p>
+                  <div class="template-default-info">
+                    <h5>Plantilla principal:</h5>
+                    <p>La plantilla principal (en la sección anterior) se usará como fallback para lenguajes sin
+                      plantilla específica.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -264,43 +298,57 @@ if __name__ == '__main__':
               <span class="accordion-icon">{{ openSections.advancedTests ? '📂' : '📁' }}</span>
             </div>
             <div class="accordion-content" v-if="openSections.advancedTests">
-              <p class="section-hint">Define tests automatizados que verificarán si la solución del estudiante es correcta (ocultos para el estudiante)</p>
+              <p class="section-hint">Define tests automatizados para diferentes lenguajes que verificarán si la
+                solución del estudiante es correcta</p>
+
+              <!-- Selector de lenguaje para tests -->
+              <div class="language-selector-container">
+                <label class="form-label" for="language-selector">
+                  <i class="icon-prefix">🌐</i> Lenguaje para tests:
+                </label>
+                <select id="language-selector" v-model="selectedLanguageForTests" class="language-select"
+                  @change="handleLanguageChange">
+                  <option v-for="lang in availableLanguages" :key="lang.id" :value="lang.id">
+                    {{ lang.name }}
+                  </option>
+                </select>
+                <span class="language-count" v-if="availableLanguages.length">
+                  ({{ availableLanguages.length }} lenguajes disponibles)
+                </span>
+              </div>
 
               <div class="test-container">
                 <div class="test-editor">
-                  <label class="form-label">Código de prueba:</label>
-                  <textarea class="form-textarea" v-model="form.advancedTests" 
-                    placeholder="# Tests avanzados para verificar la solución
-def run_tests():
-    # Casos básicos
-    test(suma_numeros([1, 2, 3]), 6, 'Suma de números positivos')
-    test(suma_numeros([]), 0, 'Lista vacía')
-    
-    # Casos límite
-    test(suma_numeros([-1, -2, -3]), -6, 'Suma de números negativos')
-    
-# Función auxiliar para tests
-def test(actual, expected, message=''):
-    if actual == expected:
-        print(f'✓ CORRECTO: {message}')
-    else:
-        print(f'✗ INCORRECTO: {message}')
-        print(f'  Esperado: {expected}')
-        print(f'  Obtenido: {actual}')"
-                    rows="15"></textarea>
-                  <span class="helper-text">Estos tests pueden incluir casos básicos, límite y de rendimiento para evaluar completamente la solución</span>
+                  <label class="form-label">Código de prueba para {{ getCurrentLanguageName() }}:</label>
+                  <textarea class="form-textarea" v-model="testsForLanguages[selectedLanguageForTests]"
+                    :placeholder="getTestPlaceholder(selectedLanguageForTests)" rows="15"></textarea>
+                  <span class="helper-text">Estos tests pueden incluir casos básicos, límite y de rendimiento para
+                    evaluar completamente la solución</span>
                 </div>
 
                 <div class="test-template-info">
                   <h4>Tipos de Tests que puede implementar:</h4>
                   <ul class="test-types-list">
                     <li><strong>Tests de Ejecución</strong>: Verifican si el código compila y ejecuta sin errores.</li>
-                    <li><strong>Tests de Casos</strong>: Comprueban que el programa produce los resultados esperados para diferentes entradas.</li>
-                    <li><strong>Tests de Casos Límite</strong>: Prueban el comportamiento con valores extremos o inesperados.</li>
-                    <li><strong>Tests de Rendimiento</strong>: Evalúan si la solución es eficiente y cumple los requisitos de tiempo.</li>
-                    <li><strong>Tests de Manejo de Errores</strong>: Verifican respuestas adecuadas ante entradas anómalas.</li>
+                    <li><strong>Tests de Casos</strong>: Comprueban que el programa produce los resultados esperados
+                      para diferentes entradas.</li>
+                    <li><strong>Tests de Casos Límite</strong>: Prueban el comportamiento con valores extremos o
+                      inesperados.</li>
+                    <li><strong>Tests de Rendimiento</strong>: Evalúan si la solución es eficiente y cumple los
+                      requisitos de tiempo.</li>
+                    <li><strong>Tests de Manejo de Errores</strong>: Verifican respuestas adecuadas ante entradas
+                      anómalas.</li>
                   </ul>
                   <p>El sistema utiliza Judge0 para ejecutar los tests y determinar si la solución es correcta.</p>
+                  <div class="supported-languages">
+                    <span class="supported-label">Lenguajes con tests:</span>
+                    <div class="language-tag-container">
+                      <span v-for="(test, langId) in testsForLanguages" :key="langId" class="language-tag"
+                        :class="{ 'active': test.trim().length > 0 }" :title="getLanguageName(langId)">
+                        {{ getLanguageShortName(langId) }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -360,6 +408,17 @@ export default defineComponent({
     const ejercicios = ref([]);
     const cursos = ref([]);
 
+    const availableLanguages = ref([]);
+    const selectedLanguageForTests = ref(71); // Python 3 por defecto
+    const testsForLanguages = ref({
+      '71': '' // Inicializar con Python vacío
+    });
+
+    const selectedLanguageForTemplate = ref(71); // Python 3 por defecto
+    const templatesForLanguages = ref({
+      '71': '' // Inicializar con Python vacío
+    });
+
 
     const configureMarkdown = () => {
       // Configurar renderer personalizado
@@ -396,6 +455,59 @@ export default defineComponent({
       });
     };
 
+    // Función para cargar lenguajes disponibles desde Judge0
+    const loadAvailableLanguages = async () => {
+      try {
+        console.log("Cargando lenguajes disponibles para tests...");
+        const judge0Url = import.meta.env.VITE_JUDGE0_API_URL;
+        if (!judge0Url) {
+          console.error("URL de Judge0 no configurada");
+          return;
+        }
+
+        const apiUrl = judge0Url.endsWith('/') ? `${judge0Url}languages` : `${judge0Url}/languages`;
+        console.log("Solicitando lenguajes desde:", apiUrl);
+
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+          console.error("Error al cargar lenguajes:", response.status, response.statusText);
+          return;
+        }
+
+        const languages = await response.json();
+
+        if (!Array.isArray(languages)) {
+          console.error("Respuesta inesperada:", languages);
+          return;
+        }
+
+        // Ordenar lenguajes populares al principio
+        const popularIds = [71, 63, 62, 54, 50]; // Python, JavaScript, Java, C++, C
+        languages.sort((a, b) => {
+          const aPopular = popularIds.includes(a.id);
+          const bPopular = popularIds.includes(b.id);
+
+          if (aPopular && !bPopular) return -1;
+          if (!aPopular && bPopular) return 1;
+          return 0;
+        });
+
+        availableLanguages.value = languages;
+        console.log(`Lenguajes disponibles cargados: ${availableLanguages.value.length}`);
+
+        // Inicializar tests para lenguajes populares
+        popularIds.forEach(id => {
+          if (!testsForLanguages.value[id]) {
+            testsForLanguages.value[id] = '';
+          }
+        });
+
+      } catch (error) {
+        console.error('Error al cargar lenguajes:', error);
+      }
+    };
+
     // Caché para markdown renderizado
     const markdownCache = new Map();
     
@@ -418,6 +530,7 @@ export default defineComponent({
     // Detectar si hay un ID de ejercicio en la ruta para edición
     onMounted(() => {
       configureMarkdown();
+      loadAvailableLanguages();
       if (route.query.edit_id) {
         exerciseId.value = route.query.edit_id;
         loadExerciseData(exerciseId.value);
@@ -439,7 +552,6 @@ export default defineComponent({
       sampleOutputs: [''],
       sampleInputs: [''],
       sampleExplanations: [''],
-      template: '', 
       advancedTests: '', 
       hint: '',
       type: 'practico',
@@ -503,19 +615,19 @@ export default defineComponent({
     // Cargar datos del ejercicio para edición
     const loadExerciseData = async (id) => {
       if (!id) return;
-      
+
       loading.value = true;
       try {
         const response = await exercisesService.getEjercicio(id);
         const exercise = response.data;
-        
+
         if (!exercise) {
           console.error(`No se encontró el ejercicio con ID ${id}`);
           showNotification('error', 'Error al cargar', 'No se encontró el ejercicio solicitado');
           loading.value = false;
           return;
         }
-        
+
         // Mapear datos del ejercicio al formulario
         form.value.title = exercise.titulo || '';
         form.value.description = exercise.descripcion || '';
@@ -523,34 +635,34 @@ export default defineComponent({
         form.value.difficulty = exercise.dificultad || 'facil';
         form.value.credit = exercise.credito || '';
         form.value.type = exercise.tipo || 'practico';
-        
+
         // Cargar etiquetas
         form.value.tags = exercise.etiquetas || [];
-        
+
         // Procesar contenido JSON
         if (exercise.contenido) {
-          const contenido = typeof exercise.contenido === 'string' 
-            ? JSON.parse(exercise.contenido) 
+          const contenido = typeof exercise.contenido === 'string'
+            ? JSON.parse(exercise.contenido)
             : exercise.contenido;
-          
+
           form.value.constraints = contenido.restricciones || '';
           form.value.hint = contenido.pista || '';
           form.value.outputFormat = contenido.formato_salida || '';
-          form.value.template = contenido.template || '';
-          form.value.advancedTests = contenido.tests_avanzados || '';
-          
-          // También cargar etiquetas desde contenido si existen
-          if (contenido.etiquetas && Array.isArray(contenido.etiquetas)) {
-            form.value.tags = contenido.etiquetas;
+          // Eliminar: form.value.template = contenido.template || '';
+
+          // Cargar plantillas por lenguaje
+          if (contenido.templates && typeof contenido.templates === 'object') {
+            templatesForLanguages.value = contenido.templates;
+            console.log('Plantillas por lenguaje cargadas:', Object.keys(templatesForLanguages.value).length);
           }
-          
+
           // Procesar formatos de entrada
           if (contenido.formatos_entrada && Array.isArray(contenido.formatos_entrada)) {
-            form.value.inputFormats = contenido.formatos_entrada.length > 0 
-              ? [...contenido.formatos_entrada] 
+            form.value.inputFormats = contenido.formatos_entrada.length > 0
+              ? [...contenido.formatos_entrada]
               : [''];
           }
-          
+
           // Procesar ejemplos
           if (contenido.ejemplos && Array.isArray(contenido.ejemplos)) {
             if (contenido.ejemplos.length > 0) {
@@ -560,17 +672,30 @@ export default defineComponent({
             }
           }
         }
-        
-        // Abrir ciertas secciones del acordeón para facilitar la edición
+
+        // Cargar tests por lenguaje
+        if (exercise.tests_avanzados) {
+          if (typeof exercise.tests_avanzados === 'object' && !Array.isArray(exercise.tests_avanzados)) {
+            testsForLanguages.value = exercise.tests_avanzados;
+            console.log('Tests por lenguaje cargados:', Object.keys(testsForLanguages.value).length);
+          } else {
+            // Convertir formato antiguo
+            testsForLanguages.value = { '71': exercise.tests_avanzados || '' };
+            console.log('Tests antiguos convertidos a formato por lenguaje');
+          }
+        }
+
+        // Abrir secciones del acordeón para facilitar la edición
         openSections.value = {
           ...openSections.value,
           inputFormat: true,
           outputFormat: true,
-          samples: true
+          samples: true,
+          templates: true  // Abre la sección de plantillas por lenguaje automáticamente
         };
-        
+
         showNotification('success', 'Ejercicio cargado', 'Los datos del ejercicio se han cargado correctamente');
-        
+
       } catch (error) {
         console.error('Error al cargar los datos del ejercicio:', error);
         showNotification('error', 'Error', 'Ocurrió un error al cargar los datos del ejercicio');
@@ -592,7 +717,7 @@ export default defineComponent({
         sampleOutputs: [''],
         sampleInputs: [''],
         sampleExplanations: [''],
-        template: '',
+        //template: '',
         advancedTests: '',
         hint: '',
         type: 'practico',
@@ -601,6 +726,10 @@ export default defineComponent({
       
       // Limpiar input de etiquetas
       tagsInput.value = '';
+
+       // Limpiar templates y tests por lenguaje
+      templatesForLanguages.value = { '71': '' };
+      testsForLanguages.value = { '71': '' };
     };
 
     // Control de secciones desplegables
@@ -608,8 +737,8 @@ export default defineComponent({
       inputFormat: false,
       outputFormat: false,
       samples: false,
-      template: false,
-      advancedTests: false
+      advancedTests: false,
+      templates: false // Sección para plantillas por lenguaje
     });
 
     const toggleSection = (section) => {
@@ -738,18 +867,18 @@ export default defineComponent({
         if (tagsInput.value.trim()) {
           processTagsFromInput();
         }
-        
+
         // Validaciones básicas
         if (!form.value.title.trim()) {
           showNotification('error', 'Error de validación', 'El título del ejercicio es obligatorio');
           return;
         }
-        
+
         if (!form.value.description.trim()) {
           showNotification('error', 'Error de validación', 'La descripción del ejercicio es obligatoria');
           return;
         }
-        
+
         // Preparar los datos del ejercicio para la API
         const ejercicioData = {
           titulo: form.value.title,
@@ -768,24 +897,28 @@ export default defineComponent({
               salida: form.value.sampleOutputs[index] || '',
               explicacion: form.value.sampleExplanations[index] || ''
             })),
-            template: form.value.template || '',
-            tests_avanzados: form.value.advancedTests,
-            etiquetas: form.value.tags // Etiquetas dentro del contenido
+            
+            // Guardar las plantillas por lenguaje
+            templates: templatesForLanguages.value,
+            etiquetas: form.value.tags
           },
-          etiquetas: form.value.tags, // Etiquetas como campo independiente para el serializador
+          // Guardar los tests por lenguaje directamente en tests_avanzados
+          tests_avanzados: testsForLanguages.value,
+          etiquetas: form.value.tags,
+          templates_por_lenguaje: templatesForLanguages.value,
+          tests_por_lenguaje: testsForLanguages.value,
           creador: store.getters['auth/userId']
         };
 
         console.log(`${isEditing.value ? "Actualizando" : "Enviando"} ejercicio:`, ejercicioData);
-        console.log("Etiquetas enviadas:", ejercicioData.etiquetas);
 
         let response;
         if (isEditing.value) {
-          // Si estamos editando, usar la función de actualización
+          // Actualizar ejercicio
           response = await exercisesService.actualizarEjercicio(exerciseId.value, ejercicioData);
           showNotification('success', 'Ejercicio actualizado', 'El ejercicio se ha actualizado correctamente');
         } else {
-          // Si estamos creando, usar la función de creación
+          // Crear nuevo ejercicio
           response = await exercisesService.crearEjercicio(ejercicioData);
           showNotification('success', 'Ejercicio creado', 'El ejercicio se ha creado y está listo para usarse en evaluaciones');
           resetForm(); // Limpiar el formulario solo si fue creación
@@ -797,7 +930,7 @@ export default defineComponent({
 
         // Preparar mensaje de error detallado
         let errorMsg = `No se pudo ${isEditing.value ? "actualizar" : "crear"} el ejercicio.`;
-        
+
         if (error.response && error.response.data) {
           errorMsg += ' Detalles: ';
           if (typeof error.response.data === 'object') {
@@ -808,7 +941,7 @@ export default defineComponent({
             errorMsg += error.response.data;
           }
         }
-        
+
         showNotification('error', 'Error', errorMsg);
       }
     };
@@ -885,6 +1018,244 @@ export default defineComponent({
     };
 
 
+    // Función para obtener el nombre del lenguaje seleccionado
+    const getCurrentLanguageName = () => {
+      const lang = availableLanguages.value.find(l => l.id === selectedLanguageForTests.value);
+      return lang ? lang.name : `Lenguaje ID: ${selectedLanguageForTests.value}`;
+    };
+
+    // Función para obtener el nombre de un lenguaje por ID
+    const getLanguageName = (langId) => {
+      const parsedId = parseInt(langId);
+      const lang = availableLanguages.value.find(l => l.id === parsedId);
+      return lang ? lang.name : `Lenguaje ID: ${langId}`;
+    };
+
+    // Función para obtener un nombre corto del lenguaje
+    const getLanguageShortName = (langId) => {
+      const parsedId = parseInt(langId);
+
+      // Mapeo personalizado para lenguajes principales (mantener consistencia)
+      const nameMap = {
+        71: 'Python', // Python 3.8.1
+        70: 'Python 2', // Python 2.7.17
+        63: 'JS', // JavaScript (Node)
+        62: 'Java', // OpenJDK
+        54: 'C++', // GCC 9.2.0
+        53: 'C++ 8.3', // GCC 8.3.0
+        52: 'C++ 7.4', // GCC 7.4.0
+        76: 'C++ Clang', // Clang
+        50: 'C', // GCC 9.2.0
+        49: 'C 8.3', // GCC 8.3.0
+        48: 'C 7.4', // GCC 7.4.0
+        75: 'C Clang', // Clang
+        51: 'C#', // Mono
+        74: 'TypeScript',
+        66: 'Octave',
+        58: 'Erlang',
+        55: 'Lisp',
+        86: 'Clojure',
+        46: 'Bash',
+        45: 'Assembly',
+        47: 'Basic',
+        77: 'COBOL',
+        79: 'Obj-C', // Objective-C
+        82: 'SQL',
+        84: 'VB.NET', // Visual Basic.Net
+      };
+
+      // Si existe en el mapeo predefinido, usarlo
+      if (nameMap[parsedId]) {
+        return nameMap[parsedId];
+      }
+
+      // Si no está en el mapeo, obtener el nombre completo
+      const lang = availableLanguages.value.find(l => l.id === parsedId);
+
+      if (!lang) {
+        return `ID:${langId}`;
+      }
+
+      const fullName = lang.name;
+
+      // Extraer nombre principal y versión
+      const match = fullName.match(/^(.*?)(?:\s+\((.*?)\))?$/);
+      if (match) {
+        const [_, baseName, version] = match;
+
+        // Acortar nombres largos
+        let shortName = baseName.split(' ')[0];
+
+        // Para lenguajes con compiladores específicos, añadir indicador
+        if (version) {
+          // Detectar compilador o versión distintiva
+          if (version.includes('GCC')) {
+            const gccVersion = version.match(/\d+\.\d+\.\d+/);
+            if (gccVersion) {
+              const majorMinor = gccVersion[0].split('.').slice(0, 2).join('.');
+              return `${shortName} ${majorMinor}`;
+            }
+          } else if (version.includes('Clang')) {
+            return `${shortName} Clang`;
+          } else if (version.match(/^\d/)) {
+            // Si la versión empieza con un número, usar la versión principal
+            const mainVersion = version.split('.')[0];
+            return `${shortName} ${mainVersion}`;
+          }
+        }
+
+        return shortName;
+      }
+
+      // Si todo falla, devolver el nombre del lenguaje
+      return fullName.length > 10 ? fullName.substring(0, 9) + '…' : fullName;
+    };
+
+    // Manejar cambio de lenguaje seleccionado
+    const handleLanguageChange = () => {
+      console.log(`Lenguaje para tests cambiado a: ${getCurrentLanguageName()} (ID: ${selectedLanguageForTests.value})`);
+
+      // Inicializar tests para este lenguaje si no existe
+      if (!testsForLanguages.value[selectedLanguageForTests.value]) {
+        testsForLanguages.value[selectedLanguageForTests.value] = '';
+      }
+    };
+
+    // Método de manejo de lenguajes
+    const handleTemplateLanguageChange = () => {
+      console.log(`Lenguaje para plantilla cambiado a: ${getCurrentLanguageName(selectedLanguageForTemplate.value)} (ID: ${selectedLanguageForTemplate.value})`);
+
+      // Inicializar plantilla para este lenguaje si no existe
+      if (!templatesForLanguages.value[selectedLanguageForTemplate.value]) {
+        templatesForLanguages.value[selectedLanguageForTemplate.value] = '';
+      }
+    };
+
+
+    // Método para obtener placeholder según el lenguaje
+    const getTemplatePlaceholder = (langId) => {
+      switch (parseInt(langId)) {
+        case 71: // Python
+          return `# Función para restar dos números
+def restar(a, b):
+    # Tu código aquí
+    pass
+
+# Puedes probar tu función
+if __name__ == "__main__":
+    print(restar(5, 3))`;
+        case 50: // C (GCC 9.2.0)
+          return `#include <stdio.h>
+
+// Función para restar dos números
+int restar(int a, int b) {
+    // Tu código aquí
+    return 0;
+}
+
+int main() {
+    printf("%d\\n", restar(5, 3));
+    return 0;
+}`;
+        case 63: // JavaScript
+          return `// Función para restar dos números
+function restar(a, b) {
+    // Tu código aquí
+    return 0;
+}
+
+// Prueba de la función
+console.log(restar(5, 3));`;
+        default:
+          return `// Plantilla para ${getLanguageName(langId)}
+// Implementa una función que reste dos números`;
+      }
+    };
+
+    // Obtener placeholder según el lenguaje
+    const getTestPlaceholder = (langId) => {
+      switch (parseInt(langId)) {
+        case 71: // Python
+          return `# Tests para verificar la solución en Python
+def run_tests():
+    # Casos básicos
+    test(suma_numeros([1, 2, 3]), 6, 'Suma de números positivos')
+    test(suma_numeros([]), 0, 'Lista vacía')
+    
+    # Casos límite
+    test(suma_numeros([-1, -2, -3]), -6, 'Suma de números negativos')
+    
+# Función auxiliar para tests
+def test(actual, expected, message=''):
+    if actual == expected:
+        print(f'✓ CORRECTO: {message}')
+    else:
+        print(f'✗ INCORRECTO: {message}')
+        print(f'  Esperado: {expected}')
+        print(f'  Obtenido: {actual}')
+
+# Ejecutar tests
+run_tests()`;
+        case 63: // JavaScript
+          return `// Tests para verificar la solución en JavaScript
+function runTests() {
+    // Casos básicos
+    test(sumaNumeros([1, 2, 3]), 6, 'Suma de números positivos');
+    test(sumaNumeros([]), 0, 'Lista vacía');
+    
+    // Casos límite
+    test(sumaNumeros([-1, -2, -3]), -6, 'Suma de números negativos');
+}
+
+// Función auxiliar para tests
+function test(actual, expected, message = '') {
+    if (actual === expected) {
+        console.log(\`✓ CORRECTO: \${message}\`);
+    } else {
+        console.log(\`✗ INCORRECTO: \${message}\`);
+        console.log(\`  Esperado: \${expected}\`);
+        console.log(\`  Obtenido: \${actual}\`);
+    }
+}
+
+// Ejecutar tests
+runTests();`;
+        case 62: // Java
+          return `// Tests para verificar la solución en Java
+public class TestRunner {
+    public static void main(String[] args) {
+        // Casos básicos
+        test(sumaNumeros(new int[]{1, 2, 3}), 6, "Suma de números positivos");
+        test(sumaNumeros(new int[]{}), 0, "Lista vacía");
+        
+        // Casos límite
+        test(sumaNumeros(new int[]{-1, -2, -3}), -6, "Suma de números negativos");
+        
+        System.out.println("Resultado: " + resultadoTests + "/" + totalTests + " pruebas pasadas");
+    }
+    
+    static int resultadoTests = 0;
+    static int totalTests = 0;
+    
+    public static void test(int actual, int expected, String message) {
+        totalTests++;
+        if (actual == expected) {
+            resultadoTests++;
+            System.out.println("✓ CORRECTO: " + message);
+        } else {
+            System.out.println("✗ INCORRECTO: " + message);
+            System.out.println("  Esperado: " + expected);
+            System.out.println("  Obtenido: " + actual);
+        }
+    }
+}`;
+        default:
+          return `// Tests para verificar la solución
+// Añade los tests específicos para este lenguaje aquí`;
+      }
+    };
+
+
     return {
       form,
       openSections,
@@ -909,10 +1280,26 @@ export default defineComponent({
       closeNotification,
       verEjercicios,
       
-      // Nuevo sistema de etiquetas
+      // Sistema de etiquetas
       tagsInput,
       processTagsFromInput,
-      removeTag
+      removeTag,
+
+      // Soporte para tests en múltiples lenguajes
+      availableLanguages,
+      selectedLanguageForTests,
+      testsForLanguages,
+      getCurrentLanguageName,
+      getLanguageName,
+      getLanguageShortName,
+      handleLanguageChange,
+      getTestPlaceholder,
+
+      // Para la plantilla del codigo
+      selectedLanguageForTemplate,
+      templatesForLanguages,
+      handleTemplateLanguageChange,
+      getTemplatePlaceholder
     };
   }
 });
@@ -1740,5 +2127,104 @@ export default defineComponent({
     right: 20px;
   }
 }
+
+
+/* Estilos para selector de lenguajes en tests */
+.language-selector-container {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.language-select {
+  background-color: #32323A;
+  color: var(--color-text-secondary, #E0E0E0);
+  border: 1px solid #3A3A45;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  appearance: none;
+  padding-right: 28px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  position: relative;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M12 15l-5-5h10l-5 5z' fill='rgba(255,255,255,0.5)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.language-select:hover {
+  background-color: #3A3A45;
+  color: var(--color-text-primary, #FFFFFF);
+  border-color: var(--color-purple, #8A4FFF);
+}
+
+.language-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(138, 79, 255, 0.3);
+  border-color: var(--color-purple, #8A4FFF);
+}
+
+.language-count {
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #9090A0);
+}
+
+/* Estilos para mostrar lenguajes con tests */
+.supported-languages {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border, #36363C);
+}
+
+.supported-label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary, #E0E0E0);
+  margin-bottom: 0.5rem;
+}
+
+.language-tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.language-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background-color: #32323A;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #9090A0);
+  border: 1px solid var(--color-border, #36363C);
+  max-width: 100px;
+  min-width: 40px;
+  height: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 3px;
+  transition: all 0.2s ease;
+}
+
+.language-tag.active {
+  background-color: var(--color-purple-dark, #6B3FC8);
+  color: white;
+  border-color: var(--color-purple, #8A4FFF);
+  font-weight: 500;
+}
+
+.language-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 
 </style>

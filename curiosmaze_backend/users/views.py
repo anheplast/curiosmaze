@@ -550,6 +550,8 @@ def update_user_view(request, user_id):
                 profile.turno = data['turno']
             if 'especializacion' in data:
                 profile.especializacion = data['especializacion']
+            if 'rol' in data: 
+                profile.rol = data['rol']
             
             # Guardar cambios en el perfil
             profile.save()

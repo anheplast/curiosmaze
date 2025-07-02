@@ -175,6 +175,33 @@
             </button>
           </div>
         </div>
+
+        <!-- Agregar después de la tarjeta de "Lenguajes Disponibles" -->
+        <div class="status-card settings">
+          <div class="status-card-header">
+            <span class="status-icon">🔧</span>
+            <h2>Configuración de Plataforma</h2>
+          </div>
+          <div class="status-card-content">
+            <div class="settings-items">
+              <div class="setting-item">
+                <div class="setting-info">
+                  <span class="setting-label">Selector de lenguajes en editor</span>
+                  <span class="setting-description">Permite a los usuarios cambiar el lenguaje de programación</span>
+                </div>
+                <div class="setting-control">
+                  <label class="switch">
+                    <input type="checkbox" v-model="languageSelectorEnabled" @change="toggleLanguageSelector">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="status-card-footer">
+            <span class="status-text">{{ languageSelectorEnabled ? '✅ Habilitado' : '❌ Deshabilitado' }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -196,6 +223,7 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue';
+import settingsService from '@/api/settingsService';
 import Judge0ConnectionChecker from '@/components/Judge0ConnectionChecker.vue';
 import axios from 'axios';
 
@@ -210,6 +238,7 @@ export default {
     const workers = ref([]);
     const config = ref(null);
     const languages = ref([]);
+    const languageSelectorEnabled = ref(false);
 
     // Estado de carga
     const loading = reactive({
@@ -218,6 +247,55 @@ export default {
       config: false,
       languages: false
     });
+
+    // Habilitar lenguajes de programacion
+    const toggleLanguageSelector = async () => {
+      const originalValue = languageSelectorEnabled.value;
+
+      try {
+        console.log(`🎛️ Cambiando selector de lenguajes a: ${languageSelectorEnabled.value}`);
+
+        // Actualizar en el servidor PRIMERO
+        const response = await settingsService.setLanguageSelectorEnabled(languageSelectorEnabled.value);
+
+        if (response.data.success) {
+          // Solo actualizar localStorage si el servidor confirma el cambio
+          localStorage.setItem('language_selector_enabled', languageSelectorEnabled.value.toString());
+
+          // Disparar evento para notificar cambio inmediato
+          window.dispatchEvent(new CustomEvent('language-selector-config-changed', {
+            detail: {
+              enabled: languageSelectorEnabled.value,
+              source: 'server',
+              timestamp: Date.now()
+            }
+          }));
+
+          console.log('✅ Configuración guardada exitosamente en el servidor');
+
+          showNotification(
+            'Configuración guardada',
+            `Selector de lenguajes ${languageSelectorEnabled.value ? 'habilitado' : 'deshabilitado'}. Los cambios se han guardado permanentemente.`,
+            'is-success',
+            '✅'
+          );
+        } else {
+          throw new Error(response.data.error || 'Error desconocido del servidor');
+        }
+      } catch (error) {
+        console.error('❌ Error al actualizar configuración:', error);
+
+        // Revertir el cambio en la UI
+        languageSelectorEnabled.value = originalValue;
+
+        showNotification(
+          'Error al guardar',
+          'No se pudo guardar la configuración en el servidor. Verifique su conexión e intente nuevamente.',
+          'is-danger',
+          '❌'
+        );
+      }
+    };
 
     // Estado de errores
     const error = reactive({
@@ -376,12 +454,44 @@ export default {
       return '📝';
     };
 
-    onMounted(() => {
-      // Cargar datos iniciales
+    onMounted(async () => {
+      console.log('🚀 AdminHome iniciado, cargando datos...');
+
+      // Cargar datos de Judge0
       fetchSystemInfo();
       fetchWorkers();
       fetchConfig();
       fetchLanguages();
+
+      // Cargar configuración del selector de lenguajes desde el servidor
+      try {
+        console.log('🔧 Cargando configuración desde servidor...');
+        const response = await settingsService.getLanguageSelectorConfig();
+
+        if (response.data.success) {
+          languageSelectorEnabled.value = response.data.language_selector_enabled;
+          console.log(`✅ Configuración cargada desde servidor: ${languageSelectorEnabled.value ? 'HABILITADO' : 'DESHABILITADO'}`);
+
+          // Sincronizar con localStorage como respaldo
+          localStorage.setItem('language_selector_enabled', languageSelectorEnabled.value.toString());
+        } else {
+          throw new Error('Respuesta no exitosa del servidor');
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar configuración desde servidor:', error);
+        console.log('🔄 Usando configuración por defecto (DESHABILITADO)');
+
+        // Por defecto: DESHABILITADO
+        languageSelectorEnabled.value = false;
+        localStorage.setItem('language_selector_enabled', 'false');
+
+        showNotification(
+          'Advertencia',
+          'No se pudo cargar la configuración desde el servidor. Usando configuración por defecto.',
+          'is-warning',
+          '⚠️'
+        );
+      }
     });
 
     return {
@@ -399,7 +509,9 @@ export default {
       formatMemory,
       getWorkerStatusClass,
       getWorkerStatusText,
-      getLanguageIcon
+      getLanguageIcon,
+      languageSelectorEnabled,
+      toggleLanguageSelector
     };
   }
 };
@@ -894,5 +1006,123 @@ export default {
   .worker-stats {
     grid-template-columns: 1fr;
   }
+}
+
+/* Estilos para la tarjeta de configuración */
+.status-card.settings .status-card-header {
+  background-color: rgba(235, 179, 0, 0.2);
+  border-bottom: 3px solid var(--color-primary);
+}
+
+.settings-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-bg-element-alt);
+  border: 1px solid var(--color-border);
+}
+
+.setting-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.setting-label {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.setting-description {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.setting-control {
+  margin-left: 1rem;
+}
+
+/* Switch toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-bg-element);
+  transition: .4s;
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 2px;
+  background-color: var(--color-text-secondary);
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+  background-color: var(--color-bg-main);
+}
+
+.status-text {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+
+.status-card.settings {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: fit-content;
+  align-self: start; /* Evita que se estire verticalmente en el grid */
+}
+
+.status-card.settings .status-card-content {
+  min-height: auto;
+  padding: 1rem 1.25rem; /* Padding más compacto */
+}
+
+.status-card.settings .settings-items {
+  gap: 0.75rem; /* Espacio más compacto entre elementos */
+}
+
+.status-card.settings .setting-item {
+  padding: 0.75rem; /* Padding más compacto */
 }
 </style>

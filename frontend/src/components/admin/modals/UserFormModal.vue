@@ -234,14 +234,14 @@
         { value: 'docente', label: 'Docente', icon: '👨‍🏫' },
         { value: 'admin', label: 'Administrador', icon: '👑' }
       ];
-      
+
       // Lista de paralelos
       const paralelos = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
-      
+
       // Estado de errores
       const formErrors = ref([]);
       const passwordMismatch = ref(false);
-      
+
       // Estado de fortaleza de contraseña
       const passwordStrength = reactive({
         score: 0,
@@ -249,9 +249,9 @@
         message: '',
         color: '#cccccc'
       });
-      
-      // Datos del formulario
-      const formData = reactive({
+
+      // Función para inicializar datos del formulario
+      const initializeFormData = () => ({
         id: props.user?.id || null,
         username: props.user?.username || '',
         nombres: props.user?.nombres || '',
@@ -268,43 +268,53 @@
         turno: props.user?.turno || '',
         especializacion: props.user?.especializacion || ''
       });
-      
+
+      // Datos del formulario
+      const formData = reactive(initializeFormData());
+
+      // Watch para actualizar formData cuando cambien los props
+      watch(() => props.user, (newUser) => {
+        if (newUser) {
+          Object.assign(formData, initializeFormData());
+        }
+      }, { immediate: true, deep: true });
+
       // Título del modal
       const title = computed(() => {
         return props.mode === 'create' ? 'Crear Nuevo Usuario' : 'Editar Usuario';
       });
-      
+
       // Ícono del título
       const titleIcon = computed(() => {
         return props.mode === 'create' ? '👤' : '✏️';
       });
-      
+
       // Verificar si hay errores
       const hasErrors = computed(() => {
         return formErrors.value.length > 0 || passwordMismatch.value;
       });
-      
+
       // Verificar coincidencia de contraseñas
       const checkPasswordMatch = () => {
         passwordMismatch.value = formData.password !== formData.password_confirm;
       };
-      
+
       // Verificar fortaleza de contraseña
       const checkPasswordStrength = () => {
         const password = formData.password;
         let score = 0;
-        
+
         // Criterios de fortaleza
         if (password.length >= 8) score += 1;
         if (/[A-Z]/.test(password)) score += 1;
         if (/[a-z]/.test(password)) score += 1;
         if (/[0-9]/.test(password)) score += 1;
         if (/[^A-Za-z0-9]/.test(password)) score += 1;
-        
+
         // Actualizar estado de fortaleza
         passwordStrength.score = score;
         passwordStrength.percentage = (score / 5) * 100;
-        
+
         // Definir mensaje y color
         if (password === '') {
           passwordStrength.message = '';
@@ -325,22 +335,22 @@
           passwordStrength.message = 'Excelente';
           passwordStrength.color = '#389e0d';
         }
-        
+
         // Verificar coincidencia si ya hay contraseña de confirmación
         if (formData.password_confirm) {
           checkPasswordMatch();
         }
       };
-      
+
       // Validar formulario
       const validateForm = () => {
         formErrors.value = [];
-        
+
         // Validar campos obligatorios básicos
         if (!formData.nombres) formErrors.value.push('El nombre es obligatorio');
         if (!formData.apellidos) formErrors.value.push('Los apellidos son obligatorios');
         if (!formData.identificacion) formErrors.value.push('El número de identificación es obligatorio');
-        
+
         // Validar contraseña en creación
         if (props.mode === 'create') {
           if (!formData.password) {
@@ -351,21 +361,21 @@
         } else if (formData.password && passwordStrength.score < 3) {
           formErrors.value.push('La contraseña es demasiado débil');
         }
-        
+
         // Validar coincidencia de contraseñas
         if (formData.password && formData.password !== formData.password_confirm) {
           formErrors.value.push('Las contraseñas no coinciden');
         }
-        
+
         // Validaciones según rol
         if (formData.rol === 'estudiante') {
           if (!formData.curso) formErrors.value.push('El curso es obligatorio');
           if (!formData.paralelo) formErrors.value.push('El paralelo es obligatorio');
         }
-        
+
         return formErrors.value.length === 0;
       };
-      
+
       // Enviar formulario
       const submitForm = () => {
         // Sincronizar username con identificación
@@ -387,7 +397,7 @@
         // Llamar al evento para guardar
         emit('save', userData);
       };
-      
+
       return {
         availableRoles,
         paralelos,

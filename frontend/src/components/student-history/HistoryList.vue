@@ -106,6 +106,7 @@
 import { ref, computed, watch } from 'vue';
 import evaluationsService from '@/api/evaluationsService';
 
+
 export default {
   name: 'HistoryList',
   props: {
@@ -212,22 +213,75 @@ export default {
 
 
 
-    // Obtener duración de evaluación - replicando enfoque de EvaluationCompleted
+    // Obtener duración de evaluación - versión mejorada
     const getEvaluationDuration = (evaluation) => {
       if (!evaluation) {
-        console.log("getEvaluationDuration: evaluación no definida");
         return null;
       }
 
-      console.log(`Obteniendo duración para evaluación ID: ${evaluation.id || evaluation.evaluacion_id}`, evaluation);
+      console.log(`🕐 Obteniendo duración para evaluación ID: ${evaluation.id || evaluation.evaluacion_id}`);
 
-      // 1. Intentar leer tiempo_total directamente
-      if (evaluation.tiempo_total && evaluation.tiempo_total !== 'null') {
-        console.log(`Usando tiempo_total existente: ${evaluation.tiempo_total}`);
+      // 1. PRIORIDAD MÁXIMA: tiempo_total_ms desde la BD
+      if (evaluation.tiempo_total_ms && evaluation.tiempo_total_ms > 0) {
+        console.log(`✅ Usando tiempo_total_ms desde BD: ${evaluation.tiempo_total_ms}ms`);
+        return evaluation.tiempo_total_ms;
+      }
+
+      // 2. Verificar en detalles adicionales
+      if (evaluation.detalles_adicionales && evaluation.detalles_adicionales.tiempo_total_ms &&
+        evaluation.detalles_adicionales.tiempo_total_ms > 0) {
+        console.log(`✅ Usando tiempo_total_ms desde detalles: ${evaluation.detalles_adicionales.tiempo_total_ms}ms`);
+        return evaluation.detalles_adicionales.tiempo_total_ms;
+      }
+
+      // 3. Verificar campo tiempo_total como número
+      if (typeof evaluation.tiempo_total === 'number' && evaluation.tiempo_total > 0) {
+        console.log(`✅ Usando tiempo_total como número: ${evaluation.tiempo_total}ms`);
         return evaluation.tiempo_total;
       }
 
-      // 2. Intentar calcular desde fechas
+      // 4. Intentar parsear tiempo_total si está en formato string como "0:00:14.331000"
+      if (evaluation.tiempo_total && evaluation.tiempo_total !== 'null' && typeof evaluation.tiempo_total === 'string') {
+        const timeStr = evaluation.tiempo_total;
+        console.log(`🔄 Parseando tiempo_total: "${timeStr}"`);
+
+        try {
+          // Si es un número como string
+          if (!timeStr.includes(':')) {
+            const numericTime = parseFloat(timeStr);
+            if (!isNaN(numericTime) && numericTime > 0) {
+              console.log(`✅ Tiempo parseado como número: ${numericTime}ms`);
+              return Math.round(numericTime);
+            }
+          }
+
+          // Si tiene formato de tiempo HH:MM:SS
+          const parts = timeStr.split(':');
+          if (parts.length >= 2) {
+            let totalMs = 0;
+
+            if (parts.length === 3) {
+              const hours = parseInt(parts[0]) || 0;
+              const minutes = parseInt(parts[1]) || 0;
+              const secondsPart = parseFloat(parts[2]) || 0;
+              totalMs = (hours * 3600 + minutes * 60 + secondsPart) * 1000;
+            } else if (parts.length === 2) {
+              const minutes = parseInt(parts[0]) || 0;
+              const secondsPart = parseFloat(parts[1]) || 0;
+              totalMs = (minutes * 60 + secondsPart) * 1000;
+            }
+
+            if (totalMs > 0) {
+              console.log(`✅ Tiempo parseado exitosamente: ${totalMs}ms`);
+              return Math.round(totalMs);
+            }
+          }
+        } catch (e) {
+          console.warn(`⚠️ Error al parsear tiempo_total: ${e}`);
+        }
+      }
+
+      // 5. Calcular desde fechas si están disponibles
       const startDate = evaluation.fecha_inicio;
       const endDate = evaluation.fecha_fin || evaluation.fecha_almacenamiento;
 
@@ -238,46 +292,34 @@ export default {
           const duration = end - start;
 
           if (!isNaN(duration) && duration > 0) {
-            console.log(`Duración calculada desde fechas: ${duration}ms (${start} → ${end})`);
+            console.log(`✅ Duración calculada desde fechas: ${duration}ms`);
             return duration;
           }
         } catch (e) {
-          console.warn("Error al calcular duración desde fechas:", e);
+          console.warn("⚠️ Error al calcular duración desde fechas:", e);
         }
-      } else {
-        console.log(`No se pudieron obtener fechas válidas: inicio=${startDate}, fin=${endDate}`);
       }
 
-      // 3. Como último recurso, intentar leer desde localStorage (exactamente como EvaluationCompleted)
+      // 6. Buscar en localStorage como último recurso (solo para evaluaciones recientes)
       try {
         const userId = localStorage.getItem('user_id') || 'anonymous';
         const evalId = evaluation.id || evaluation.evaluacion_id;
 
-        console.log(`Buscando tiempos en localStorage para usuario ${userId}, evaluación ${evalId}`);
+        if (evalId) {
+          const startTime = parseInt(localStorage.getItem(`evaluationStartTime_${userId}`) || '0');
+          const endTime = parseInt(localStorage.getItem(`evaluationEndTime_${userId}`) || '0');
 
-        // Primero intentar con formato específico para la evaluación
-        let startTime = parseInt(localStorage.getItem(`evaluationStartTime_${userId}_${evalId}`) || '0');
-        if (startTime === 0) {
-          // Si no hay tiempo específico, intentar con el general
-          startTime = parseInt(localStorage.getItem(`evaluationStartTime_${userId}`) || localStorage.getItem('evaluationStartTime') || '0');
-        }
-
-        const endTime = parseInt(localStorage.getItem(`evaluationEndTime_${userId}`) || '0');
-
-        console.log(`Tiempos obtenidos: inicio=${startTime}, fin=${endTime}`);
-
-        if (startTime > 0 && endTime > 0) {
-          const duration = endTime - startTime;
-          if (duration > 0) {
-            console.log(`⏱️ Tiempo calculado desde localStorage: ${duration}ms`);
+          if (startTime > 0 && endTime > 0 && endTime > startTime) {
+            const duration = endTime - startTime;
+            console.log(`✅ Tiempo recuperado desde localStorage: ${duration}ms`);
             return duration;
           }
         }
       } catch (e) {
-        console.warn("Error al leer tiempos desde localStorage:", e);
+        console.warn("⚠️ Error al buscar en localStorage:", e);
       }
 
-      console.log("No se pudo determinar la duración de la evaluación");
+      console.log("❌ No se pudo determinar la duración de la evaluación");
       return null;
     };
 
@@ -356,7 +398,7 @@ export default {
 
     // Formatear tiempo - igual que en EvaluationCompleted
     const formatTime = (timeValue) => {
-      console.log(`formatTime recibió: ${timeValue} (tipo: ${typeof timeValue})`);
+      console.log(`🕐 formatTime recibió: ${timeValue} (tipo: ${typeof timeValue})`);
 
       if (!timeValue) {
         return 'No disponible';
@@ -372,19 +414,28 @@ export default {
       else if (typeof timeValue === 'string' && !isNaN(parseInt(timeValue))) {
         milliseconds = parseInt(timeValue);
       }
-      // Si es formato HH:MM:SS
+      // Si es formato HH:MM:SS.ffffff o MM:SS.ffffff
       else if (typeof timeValue === 'string' && timeValue.includes(':')) {
         const parts = timeValue.split(':');
-        if (parts.length === 3) {
-          const hours = parseInt(parts[0]) || 0;
-          const minutes = parseInt(parts[1]) || 0;
-          const seconds = parseInt(parts[2]) || 0;
-          milliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000;
-        } else {
-          return timeValue; // No se pudo parsear, devolver como está
+        try {
+          if (parts.length === 3) {
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
+            const secondsPart = parseFloat(parts[2]) || 0;
+            milliseconds = (hours * 3600 + minutes * 60 + secondsPart) * 1000;
+          } else if (parts.length === 2) {
+            const minutes = parseInt(parts[0]) || 0;
+            const secondsPart = parseFloat(parts[1]) || 0;
+            milliseconds = (minutes * 60 + secondsPart) * 1000;
+          } else {
+            return timeValue;
+          }
+        } catch (e) {
+          console.warn(`⚠️ Error parseando tiempo: ${e}`);
+          return timeValue;
         }
       } else {
-        return String(timeValue); // Otro formato, devolver como string
+        return String(timeValue);
       }
 
       // Formatear igual que EvaluationCompleted
@@ -392,69 +443,12 @@ export default {
       const seconds = Math.floor((milliseconds % 60000) / 1000);
 
       const formattedTime = minutes === 0 ? `${seconds} seg` : `${minutes}m ${seconds}s`;
-      console.log(`Tiempo formateado: ${formattedTime} (${milliseconds}ms)`);
+      console.log(`✅ Tiempo formateado: ${formattedTime} (${milliseconds}ms)`);
 
       return formattedTime;
     };
 
-    /* Format time
-    const formatTime = (timeString) => {
-      if (!timeString) return 'No disponible';
-
-      try {
-        // 1. Si es un número o puede convertirse a número (milisegundos)
-        if (!isNaN(timeString) || (typeof timeString === 'string' && !isNaN(parseInt(timeString)))) {
-          const durationMs = Number(timeString);
-          const minutes = Math.floor(durationMs / 60000);
-          const seconds = Math.floor((durationMs % 60000) / 1000);
-
-          if (minutes > 0) {
-            return `${minutes}m ${seconds}s`;
-          } else {
-            return `${seconds}s`;
-          }
-        }
-
-        // 2. Si es formato ISO (PT1H30M)
-        if (typeof timeString === 'string' && timeString.startsWith('P')) {
-          const hours = timeString.match(/(\d+)H/);
-          const minutes = timeString.match(/(\d+)M/);
-          const seconds = timeString.match(/(\d+)S/);
-
-          let result = '';
-          if (hours) result += `${hours[1]}h `;
-          if (minutes) result += `${minutes[1]}m `;
-          if (seconds) result += `${seconds[1]}s`;
-
-          return result.trim() || 'No disponible';
-        }
-
-        // 3. Si es formato HH:MM:SS
-        if (typeof timeString === 'string') {
-          const parts = timeString.split(':');
-          if (parts.length === 3) {
-            const hours = parseInt(parts[0]) || 0;
-            const minutes = parseInt(parts[1]) || 0;
-            const seconds = parseInt(parts[2]) || 0;
-
-            if (hours > 0) {
-              return `${hours}h ${minutes}m ${seconds}s`;
-            } else if (minutes > 0) {
-              return `${minutes}m ${seconds}s`;
-            } else {
-              return `${seconds}s`;
-            }
-          }
-        }
-
-        // Para cualquier otro formato, mostrar como está
-        return String(timeString);
-      } catch (e) {
-        console.warn('Error al formatear tiempo:', e);
-        return 'No disponible';
-      }
-    };
-    */
+    
 
     // Formato de puntuación
     const formatScore = (score) => {
@@ -542,33 +536,58 @@ export default {
       if (!evaluationToDelete.value) return;
 
       try {
-        const evaluationId = evaluationToDelete.value.id ||
-          evaluationToDelete.value.evaluacion_id;
+        const evaluation = evaluationToDelete.value;
+        const evaluationId = evaluation.evaluacion_id || evaluation.id;
+        const historialId = evaluation.id; // ID del registro de historial
 
-        console.log(`Eliminando evaluación: ${evaluationId}`);
+        console.log(`Intentando eliminar evaluación: evaluationId=${evaluationId}, historialId=${historialId}`);
 
-        if (!evaluationId) {
-          throw new Error('ID de evaluación no disponible');
+        let deleteSuccess = false;
+        let errorMessage = '';
+
+        // Intentar eliminar primero de la tabla de evaluaciones activas
+        if (evaluationId && evaluationId !== historialId) {
+          try {
+            await evaluationsService.eliminarEvaluacion(evaluationId);
+            console.log(`Evaluación ${evaluationId} eliminada de evaluaciones activas`);
+            deleteSuccess = true;
+          } catch (apiError) {
+            console.warn(`No se pudo eliminar la evaluación ${evaluationId} de evaluaciones activas:`, apiError);
+            errorMessage = apiError.message || 'Error al eliminar de evaluaciones activas';
+          }
         }
 
-        try {
-          // Intentar eliminar de evaluaciones
-          await evaluationsService.eliminarEvaluacion(evaluationId);
-          console.log(`Evaluación ${evaluationId} eliminada correctamente`);
-        } catch (apiError) {
-          // Si falla, probablemente es porque solo existe en historial
-          console.warn(`No se pudo eliminar la evaluación ${evaluationId} del servidor:`, apiError);
-          alert("Esta evaluación solo existe en el historial y no se puede eliminar directamente.");
+        // Si no se pudo eliminar de evaluaciones activas O si solo existe en historial, eliminar del historial
+        if (!deleteSuccess && historialId) {
+          try {
+            await evaluationsService.eliminarEvaluacionHistorial(historialId);
+            console.log(`Evaluación eliminada del historial ID: ${historialId}`);
+            deleteSuccess = true;
+          } catch (historialError) {
+            console.error(`Error al eliminar del historial:`, historialError);
+            errorMessage = historialError.response?.data?.message || historialError.message || 'Error al eliminar del historial';
+          }
         }
 
-        // Independientemente del resultado de la API, eliminar del estado local
-        emit('evaluation-deleted', evaluationToDelete.value);
+        if (deleteSuccess) {
+          // Emitir evento para actualizar la lista
+          emit('evaluation-deleted', evaluationToDelete.value);
+          console.log(`Evaluación eliminada exitosamente`);
+
+          // Mostrar mensaje de éxito
+          alert('Evaluación eliminada correctamente del historial');
+        } else {
+          // Mostrar error
+          alert(`No se pudo eliminar la evaluación: ${errorMessage}`);
+        }
 
         // Cerrar modal
         showDeleteModal.value = false;
         evaluationToDelete.value = null;
       } catch (error) {
-        console.error('Error al eliminar evaluación:', error);
+        console.error('Error inesperado al eliminar evaluación:', error);
+        alert('Error inesperado al eliminar la evaluación');
+
         // Cerrar modal
         showDeleteModal.value = false;
         evaluationToDelete.value = null;
@@ -1019,6 +1038,25 @@ export default {
   .item-meta {
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+}
+
+/* Estilos para tema claro del navegador */
+@media (prefers-color-scheme: light) {
+  .delete-modal .modal-title {
+    color: #2A2A35;
+  }
+  
+  .delete-modal .modal-text {
+    color: #2A2A35;
+  }
+  
+  .delete-modal .modal-warning {
+    color: #D32F2F;
+  }
+  
+  .delete-modal .modal-button.cancel {
+    color: #2A2A35;
   }
 }
 </style>

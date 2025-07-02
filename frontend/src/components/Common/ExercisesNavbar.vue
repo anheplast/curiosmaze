@@ -8,37 +8,37 @@
           <h1 class="logo-text" v-if="evaluation">{{ evaluation.title || 'Evaluación' }}</h1>
         </div>
       </div>
-      
+
       <div class="navbar-center">
         <button class="nav-button prev-button" @click="goToPreviousExercise" :disabled="currentExerciseIndex === 0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
           </svg>
           <span>Anterior</span>
         </button>
-        
+
         <div class="exercise-counter">
           <span class="counter-icon">📝</span>
           <span class="counter-text">Ejercicio {{ currentExerciseIndex + 1 }} de {{ exercisesCount }}</span>
         </div>
-        
-        <button class="nav-button next-button" @click="goToNextExercise" :disabled="currentExerciseIndex === exercisesCount - 1">
+
+        <button class="nav-button next-button" @click="goToNextExercise"
+          :disabled="currentExerciseIndex === exercisesCount - 1">
           <span>Siguiente</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
           </svg>
         </button>
       </div>
-      
+
       <div class="navbar-end">
         <div class="timer-container">
           <div class="timer-label">{{ isHistoryMode ? 'Finalizada' : 'Tiempo restante' }}</div>
-          <div class="timer-display" 
-              :class="{ 
-                'warning': isTimeAlmostUp, 
-                'critical': isTimeAlmostFinished,
-                'blinking': isLastSeconds
-              }">
+          <div class="timer-display" :class="{
+            'warning': isTimeAlmostUp,
+            'critical': isTimeAlmostFinished,
+            'blinking': isLastSeconds
+          }">
             <div class="timer-icon">⏱️</div>
             <div class="timer-value">{{ timeRemaining }}</div>
           </div>
@@ -47,7 +47,7 @@
     </nav>
   </div>
 </template>
-  
+
 <script>
 import { ref, onMounted, onUnmounted, inject, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -60,14 +60,14 @@ export default {
     const evaluation = inject('evaluation', ref(null));
     const exercises = inject('exercises', ref([]));
     const currentExerciseIndex = inject('currentExerciseIndex', ref(0));
-    const selectExercise = inject('selectExercise', () => {});
+    const selectExercise = inject('selectExercise', () => { });
     const finishEvaluation = inject('finishEvaluation', null);
     const notificationRef = inject('notificationRef', ref(null));
-    
+
     // Agregar: viewMode e isHistoryMode
     const viewMode = inject('viewMode', ref('normal'));
     const isHistoryMode = inject('isHistoryMode', ref(false));
-    
+
     // Función para mostrar notificaciones
     const showNotification = (message, type = 'info', duration = 3000) => {
       if (notificationRef?.value?.showNotification) {
@@ -77,7 +77,7 @@ export default {
         console.log(`Notificación: ${message} (tipo: ${type})`);
       }
     };
-    
+
     // Estados para el cronómetro
     const isTimeAlmostUp = ref(false);     // 10% del tiempo restante
     const isTimeAlmostFinished = ref(false); // Para cambiar a rojo
@@ -88,6 +88,7 @@ export default {
     const updateTimeRemaining = () => {
       // Verificar si estamos en modo historial
       if (isHistoryMode.value || viewMode.value === 'history') {
+        console.log('ExercisesNavbar: Modo historial detectado, no se actualiza tiempo');
         timeRemaining.value = '00:00:00';
         isTimeAlmostUp.value = false;
         isTimeAlmostFinished.value = false;
@@ -187,7 +188,7 @@ export default {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
         return;
       }
-      
+
       if (e.key === 'ArrowLeft') {
         goToPreviousExercise();
       } else if (e.key === 'ArrowRight') {
@@ -199,12 +200,12 @@ export default {
 
     onMounted(() => {
       updateTimeRemaining();
-      
+
       // Modificado: No iniciar intervalo si estamos en modo historial
       if (!isHistoryMode.value && viewMode.value !== 'history') {
         clockInterval = setInterval(updateTimeRemaining, 1000);
       }
-      
+
       // Registrar navegación con teclado
       //document.addEventListener('keydown', handleKeyNavigation);
     });
@@ -213,7 +214,7 @@ export default {
       if (clockInterval) {
         clearInterval(clockInterval);
       }
-      
+
       //document.removeEventListener('keydown', handleKeyNavigation);
     });
 
@@ -239,7 +240,7 @@ export default {
   }
 };
 </script>
-  
+
 <style>
 /* Estilos globales para anular Bulma (sin scoped) */
 .exercises-navbar-wrapper button {
@@ -279,17 +280,19 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 24px;
   height: 56px;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  /* max-width: 1400px; */
+  /* margin: 0 auto; */
 }
 
 /* Logo y título */
 .navbar-start {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
+  /* No crecer ni encogerse */
 }
 
 .logo-container {
@@ -318,6 +321,10 @@ export default {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  /* Ocupa el espacio restante */
+  justify-content: center;
+  /* Centra el contenido */
 }
 
 .nav-button {
@@ -370,6 +377,8 @@ export default {
 .navbar-end {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
+  /* No crecer ni encogerse */
 }
 
 .timer-container {
@@ -426,6 +435,7 @@ export default {
     opacity: 1;
     transform: scale(1);
   }
+
   to {
     opacity: 0.7;
     transform: scale(1.05);
@@ -435,38 +445,39 @@ export default {
 /* Responsive */
 @media (max-width: 768px) {
   .exercises-navbar {
-    padding: 0 10px;
+    padding: 0 12px;
+    /* Padding mínimo en móvil */
     height: 50px;
   }
-  
+
   .logo-text {
     max-width: 100px;
     font-size: 14px;
   }
-  
+
   .nav-button {
     padding: 4px 8px;
   }
-  
+
   .nav-button span {
     display: none;
   }
-  
+
   .exercise-counter {
     padding: 4px 8px;
   }
-  
+
   .counter-text {
     max-width: 120px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
+
   .timer-label {
     display: none;
   }
-  
+
   .timer-display {
     padding: 4px 8px;
   }

@@ -52,6 +52,8 @@ from .serializers import (
     UsuarioSerializer,
 )
 
+
+
 logger = logging.getLogger('judge')
 
 
@@ -150,7 +152,7 @@ def test(actual, expected, message=""):
 
 
 
-def procesar_ejercicio(codigo, ejercicio_id, evaluacion_id, estudiante_evaluacion_id=None):
+def procesar_ejercicio(codigo, ejercicio_id, evaluacion_id, estudiante_evaluacion_id=None, language_id=71):
     """
     Procesa un ejercicio específico y evalúa su código
     
@@ -249,7 +251,7 @@ def procesar_ejercicio(codigo, ejercicio_id, evaluacion_id, estudiante_evaluacio
                 from .judge_utils import ejecutar_tests_avanzados
                 
                 # Ejecutar tests avanzados
-                test_result = ejecutar_tests_avanzados(codigo, tests_avanzados)
+                test_result = ejecutar_tests_avanzados(codigo, tests_avanzados, language_id)
                 
                 # Analizar resultado
                 if test_result['success']:
@@ -487,7 +489,8 @@ def procesar_ejercicio(codigo, ejercicio_id, evaluacion_id, estudiante_evaluacio
                     'respuesta': respuesta_content,
                     'es_correcta': resultado['es_correcto'],
                     'puntaje_obtenido': resultado['puntaje_obtenido'],
-                    'fecha_respuesta': timezone.now()
+                    'fecha_respuesta': timezone.now(),
+                    
                 }
             )
         except Exception as db_error:
@@ -552,11 +555,11 @@ class EjercicioViewSet(viewsets.ModelViewSet):
         user = self.request.user
         try:
             profile = UserProfile.objects.get(user=user)
-            # Si es admin, ve todos los ejercicios
-            if profile.rol == 'admin' or user.is_superuser:
+            # Si es admin O DOCENTE, ve todos los ejercicios
+            if profile.rol == 'admin' or profile.rol == 'docente' or user.is_superuser:
                 return Ejercicio.objects.all()
-            # Si es docente, solo ve sus propios ejercicios
-            return Ejercicio.objects.filter(creador=user)
+            # Otros roles no ven ejercicios
+            return Ejercicio.objects.none()
         except UserProfile.DoesNotExist:
             if user.is_superuser:
                 return Ejercicio.objects.all()
@@ -848,6 +851,8 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         return User.objects.none()
 
 
+
+
 @api_view(['GET'])
 def get_detalles_evaluacion(request, pk):
     """
@@ -867,7 +872,7 @@ def get_detalles_evaluacion(request, pk):
         ee_count = evaluacion.evaluacionejercicio_set.count()
         print(f"Cantidad de relaciones EvaluacionEjercicio: {ee_count}")
         
-        # Obtener ejercicios completos
+        # Obtener ejercicios completos usando el serializador
         ejercicios = []
         for ee in evaluacion.evaluacionejercicio_set.all().order_by('orden'):
             ejercicio = ee.ejercicio
@@ -875,70 +880,36 @@ def get_detalles_evaluacion(request, pk):
             # Log para cada ejercicio
             print(f"Procesando ejercicio ID: {ejercicio.id}, Título: {ejercicio.titulo}")
             
-            # Extraer información del contenido JSON
+            # USAR EL SERIALIZADOR en lugar de construir manualmente
+            from .serializers import EjercicioSerializer
+            serializer = EjercicioSerializer(ejercicio)
+            ejercicio_data = serializer.data
+            
+            # Extraer información del contenido JSON para campos adicionales
             contenido = ejercicio.contenido or {}
             if isinstance(contenido, str):
                 try:
                     contenido = json.loads(contenido)
                 except:
                     contenido = {}
-                    
             
-            # Obtener etiquetas directamente y del contenido
-            etiquetas = []
-            
-            # 1. Intentar obtener etiquetas del contenido
-            if 'etiquetas' in contenido and isinstance(contenido['etiquetas'], list):
-                etiquetas = contenido['etiquetas']
-                print(f"  Etiquetas encontradas en contenido: {etiquetas}")
-            
-            # 2. Intentar obtener etiquetas como campo directo (si existe)
-            if hasattr(ejercicio, 'etiquetas'):
-                direct_tags = getattr(ejercicio, 'etiquetas')
-                if direct_tags and isinstance(direct_tags, list):
-                    if not etiquetas:  # Solo usar si no encontramos en contenido
-                        etiquetas = direct_tags
-                        print(f"  Etiquetas encontradas como campo directo: {etiquetas}")
-            
-            # 3. Usar el serializador para obtener etiquetas (mejor opción)
-            try:
-                from .serializers import EjercicioSerializer
-                serializer = EjercicioSerializer(ejercicio)
-                serializer_tags = serializer.data.get('etiquetas', [])
-                if serializer_tags and not etiquetas:
-                    etiquetas = serializer_tags
-                    print(f"  Etiquetas encontradas vía serializador: {etiquetas}")
-            except Exception as e:
-                print(f"  Error al obtener etiquetas vía serializador: {str(e)}")
-            
-            if not etiquetas:
-                print(f"  No se encontraron etiquetas para este ejercicio")
-                
-            etiquetas = ejercicio.get_etiquetas()
-            
-            
-            
-            # Construir datos del ejercicio con etiquetas explícitas
-            ejercicio_data = {
-                'id': ejercicio.id,
-                'titulo': ejercicio.titulo,
-                'descripcion': ejercicio.descripcion,
-                'tipo': ejercicio.tipo,
-                'puntaje': ejercicio.puntaje,
+            # Agregar campos adicionales que necesita el frontend
+            ejercicio_data.update({
                 'restricciones': contenido.get('restricciones', ''),
                 'formato_salida': contenido.get('formato_salida', ''),
                 'formatos_entrada': contenido.get('formatos_entrada', []),
                 'ejemplos': contenido.get('ejemplos', []),
-                'template': contenido.get('template', 'print("Hello, World!")'),
                 'pista': contenido.get('pista', ''),
                 'credito': ejercicio.credito or '',
-                'etiquetas': etiquetas  # Usar las etiquetas del método helper
-            }
+            })
             
-            print(f"Ejercicio ID: {ejercicio.id}")
-            print(f"Contenido crudo: {ejercicio.contenido}")
-            print(f"Contenido parseado: {contenido}")
-            print(f"Pista en contenido: {contenido.get('pista', 'NO ENCONTRADA')}")
+            # Verificar que templates_por_lenguaje esté presente
+            if 'templates_por_lenguaje' not in ejercicio_data or not ejercicio_data['templates_por_lenguaje']:
+                # Fallback: obtener directamente del contenido
+                ejercicio_data['templates_por_lenguaje'] = contenido.get('templates', {})
+            
+            print(f"✅ Templates por lenguaje para ejercicio {ejercicio.id}: {ejercicio_data['templates_por_lenguaje']}")
+            print(f"🔍 Ejercicio_data keys: {list(ejercicio_data.keys())}")
             
             ejercicios.append(ejercicio_data)
         
@@ -986,14 +957,22 @@ def get_detalles_evaluacion(request, pk):
             'creador': creador_info
         }
         
-        return JsonResponse(response_data)
+        # JsonResponse por Response de DRF para mejor serialización
+        from rest_framework.response import Response
+        return Response(response_data)
     
     except Evaluacion.DoesNotExist:
-        return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+        from rest_framework.response import Response
+        return Response({'error': 'Evaluación no encontrada'}, status=404)
     
     except Exception as e:
         print(f"Error al obtener detalles de evaluación: {str(e)}")
-        return JsonResponse({'error': 'Error del servidor'}, status=500)
+        import traceback
+        print(traceback.format_exc())
+        from rest_framework.response import Response
+        return Response({'error': 'Error del servidor'}, status=500)
+
+
 
 # Funciones para ejecutar código de los estudiantes
 def ejecutar_codigo(codigo, entrada):
@@ -1103,9 +1082,15 @@ def submit_codigo(request):
             evaluacion=evaluacion,
             defaults={
                 'estado': 'activo',
-                'fecha_inicio': timezone.now()
+                'fecha_inicio': timezone.now()  # IMPORTANTE: Asegurar fecha_inicio
             }
         )
+        
+        # Si ya existía pero no tenía fecha_inicio, establecerla
+        if not created and not estudiante_evaluacion.fecha_inicio:
+            estudiante_evaluacion.fecha_inicio = timezone.now()
+            estudiante_evaluacion.save()
+            logger.info(f"[Batch:{batch_id}] Establecida fecha_inicio para participación existente")
         
         # Obtener el ejercicio
         ejercicio = get_object_or_404(Ejercicio, pk=ejercicio_id)
@@ -1150,7 +1135,11 @@ def submit_codigo(request):
         if tests_avanzados:
             # Ejecutar tests avanzados
             from .judge_utils import ejecutar_tests_avanzados
-            test_result = ejecutar_tests_avanzados(codigo, tests_avanzados)
+            
+            # Obtener el ID del lenguaje de la solicitud
+            language_id = request.data.get('language_id', 71)  # Por defecto: Python
+    
+            test_result = ejecutar_tests_avanzados(codigo, tests_avanzados, language_id)
             
             if test_result['success']:
                 casos_correctos = test_result['pruebas_pasadas']
@@ -1241,7 +1230,8 @@ def submit_codigo(request):
                     'respuesta': respuesta_content,
                     'es_correcta': resultado['es_correcto'],
                     'puntaje_obtenido': resultado['puntaje_obtenido'],
-                    'fecha_respuesta': timezone.now()
+                    'fecha_respuesta': timezone.now(),
+                    #'language_id': request.data.get('language_id', 71)
                 }
             )
         except Exception as db_error:
@@ -1377,9 +1367,10 @@ def submit_batch(request):
                             ejercicio=ejercicio,
                             defaults={
                                 'respuesta': respuesta_content,
-                                'es_correcta': False,
-                                'puntaje_obtenido': 0,
-                                'fecha_respuesta': timezone.now()
+                                'es_correcta': resultado.get('es_correcto', False),
+                                'puntaje_obtenido': resultado.get('puntaje_obtenido', 0),
+                                'fecha_respuesta': timezone.now(),
+                                #'language_id': ejercicio.get('language_id', 71)
                             }
                         )
                         continue
@@ -1452,7 +1443,8 @@ def submit_batch(request):
                         'respuesta': respuesta_content,
                         'es_correcta': resultado.get('es_correcto', False),
                         'puntaje_obtenido': resultado.get('puntaje_obtenido', 0),
-                        'fecha_respuesta': timezone.now()
+                        'fecha_respuesta': timezone.now(),
+                        #'language_id': ejercicio.get('language_id', 71)
                     }
                 )
             except Exception as db_error:
@@ -1478,13 +1470,28 @@ def submit_batch(request):
                 estudiante_evaluacion.estado = 'finalizado'
                 estudiante_evaluacion.fecha_fin = timezone.now()
                 
-                # Guardar en historial cuando se completa la evaluación
+                # CRÍTICO: Calcular tiempo ANTES de guardar en historial
+                if not estudiante_evaluacion.tiempo_total_ms:
+                    # Intentar obtener del request data
+                    tiempo_desde_frontend = request.data.get('tiempo_total_ms')
+                    if tiempo_desde_frontend and tiempo_desde_frontend > 0:
+                        estudiante_evaluacion.tiempo_total_ms = int(tiempo_desde_frontend)
+                        logger.info(f"[Batch:{batch_id}] Tiempo desde frontend: {tiempo_desde_frontend}ms")
+                    # Si no hay tiempo del frontend, calcular desde fechas
+                    elif estudiante_evaluacion.fecha_inicio and estudiante_evaluacion.fecha_fin:
+                        tiempo_ms = int((estudiante_evaluacion.fecha_fin - estudiante_evaluacion.fecha_inicio).total_seconds() * 1000)
+                        estudiante_evaluacion.tiempo_total_ms = tiempo_ms
+                        logger.info(f"[Batch:{batch_id}] Tiempo calculado desde fechas: {tiempo_ms}ms")
+                    else:
+                        logger.warning(f"[Batch:{batch_id}] No se pudo calcular tiempo total")
+                
+                # Guardar primero el estudiante con el tiempo
+                estudiante_evaluacion.save()
+                
+                # AHORA guardar en historial con el tiempo ya calculado
                 guardar_evaluacion_en_historial(estudiante_evaluacion)
-            
-            estudiante_evaluacion.save()
-            
-            print(f"[Batch:{batch_id}] Estado actual: {estudiante_evaluacion.estado}")
-            print(f"[Batch:{batch_id}] Respuestas existentes en BD: {RespuestaEjercicio.objects.filter(estudiante_evaluacion=estudiante_evaluacion).count()}")
+            else:
+                estudiante_evaluacion.save()
             
             logger.info(f"[Batch:{batch_id}] Estado del estudiante actualizado: {estudiante_evaluacion.estado}, Progreso: {estudiante_evaluacion.progreso}%, Puntaje: {estudiante_evaluacion.puntaje}")
         except Exception as update_error:
@@ -1675,6 +1682,8 @@ def finalizar_evaluacion(request, pk):
     """
     try:
         estudiante_id = request.data.get('estudiante_id')
+        tiempo_total_ms = request.data.get('tiempo_total_ms')  # RECIBIR tiempo del frontend
+        
         if not estudiante_id:
             estudiante_id = request.user.id
             
@@ -1692,26 +1701,33 @@ def finalizar_evaluacion(request, pk):
         if not created:
             participacion.estado = 'finalizado'
             participacion.fecha_fin = timezone.now()
-            participacion.save()
         
-        # ASEGURAR QUE SE GUARDE EN HISTORIAL
+        # CRÍTICO: Guardar tiempo total si se proporcionó desde el frontend
+        if tiempo_total_ms and tiempo_total_ms > 0:
+            participacion.tiempo_total_ms = int(tiempo_total_ms)
+            print(f"✅ Tiempo total guardado desde frontend: {tiempo_total_ms}ms ({tiempo_total_ms/1000:.1f}s)")
+        elif participacion.fecha_inicio and participacion.fecha_fin:
+            # Calcular desde fechas como fallback
+            tiempo_ms = int((participacion.fecha_fin - participacion.fecha_inicio).total_seconds() * 1000)
+            participacion.tiempo_total_ms = tiempo_ms
+            print(f"⚠️ Tiempo total calculado desde fechas: {tiempo_ms}ms ({tiempo_ms/1000:.1f}s)")
+        else:
+            print("❌ No se pudo determinar el tiempo total de la evaluación")
+        
+        participacion.save()
+        
+        # Guardar en historial DESPUÉS de guardar el tiempo
         guardar_evaluacion_en_historial(participacion)
-        
-        # DEBUG: Verificar que se guardó
-        historial_count = HistorialEvaluacion.objects.filter(
-            estudiante_id=estudiante_id,
-            evaluacion_id=evaluacion.id
-        ).count()
-        print(f"DEBUG: Registros en historial para evaluación {evaluacion.id}: {historial_count}")
         
         return Response({
             'success': True,
             'message': 'Evaluación finalizada con éxito',
-            'historial_guardado': historial_count > 0
+            'tiempo_guardado_ms': participacion.tiempo_total_ms,
+            'tiempo_guardado_segundos': participacion.tiempo_total_ms / 1000 if participacion.tiempo_total_ms else None
         })
         
     except Exception as e:
-        print(f"Error al finalizar evaluación: {str(e)}")
+        print(f"❌ Error al finalizar evaluación: {str(e)}")
         return Response({
             'success': False,
             'message': f'Error al finalizar evaluación: {str(e)}'
@@ -2060,7 +2076,8 @@ def obtener_historial_evaluaciones(request):
                 'puntaje_sobre_10': (historial.puntaje_total / historial.evaluacion_puntaje_total) * 10 if historial.evaluacion_puntaje_total > 0 else 0,
                 'color_clase': get_color_clase((historial.puntaje_total / historial.evaluacion_puntaje_total) * 10 if historial.evaluacion_puntaje_total > 0 else 0),
                 'respuestas': respuestas_data,
-                'tiempo_total': str(historial.tiempo_total) if historial.tiempo_total else None,
+                'tiempo_total': str(historial.tiempo_total) if historial.tiempo_total else None,               
+                'tiempo_total_ms': historial.tiempo_total_ms,
                 'detalles_adicionales': historial.detalles,
                 'evaluacion_activa': historial.evaluacion_activa
             }
@@ -2314,6 +2331,7 @@ def guardar_evaluacion_en_historial(estudiante_evaluacion):
                 'puntaje_obtenido': respuesta.puntaje_obtenido,
                 'es_correcta': respuesta.es_correcta,
                 'fecha_respuesta': respuesta.fecha_respuesta.isoformat(),
+                'language_id': getattr(respuesta, 'language_id', 71),
                 
                 # Datos adicionales para mejorar la experiencia en historial
                 'ejemplos': ejemplos,
@@ -2368,7 +2386,32 @@ def guardar_evaluacion_en_historial(estudiante_evaluacion):
         porcentaje_aprobacion = ((estudiante_evaluacion.puntaje or 0) / evaluacion.puntaje_total) * 100 if evaluacion.puntaje_total > 0 else 0
         
         # Calcular tiempo total
-        tiempo_total = estudiante_evaluacion.fecha_fin - estudiante_evaluacion.fecha_inicio if estudiante_evaluacion.fecha_fin and estudiante_evaluacion.fecha_inicio else None
+        tiempo_total = None
+        tiempo_total_ms = estudiante_evaluacion.tiempo_total_ms
+
+        print(f"🕐 Guardando historial - tiempo_total_ms desde BD: {tiempo_total_ms}")
+
+        if tiempo_total_ms and tiempo_total_ms > 0:
+            # Usar tiempo guardado en BD (en milisegundos) - MÉTODO PRINCIPAL
+            tiempo_total_seconds = tiempo_total_ms / 1000
+            tiempo_total = timezone.timedelta(seconds=tiempo_total_seconds)
+            print(f"✅ Usando tiempo desde BD: {tiempo_total_ms}ms ({tiempo_total_seconds:.1f}s)")
+        elif estudiante_evaluacion.fecha_fin and estudiante_evaluacion.fecha_inicio:
+            # Calcular desde fechas como fallback
+            tiempo_total = estudiante_evaluacion.fecha_fin - estudiante_evaluacion.fecha_inicio
+            tiempo_total_ms = int(tiempo_total.total_seconds() * 1000)
+            print(f"⚠️ Tiempo calculado desde fechas para historial: {tiempo_total_ms}ms")
+            
+            # Actualizar la participación con el tiempo calculado
+            estudiante_evaluacion.tiempo_total_ms = tiempo_total_ms
+            estudiante_evaluacion.save()
+            print(f"💾 Tiempo guardado en BD: {tiempo_total_ms}ms")
+        else:
+            print("❌ No se pudo determinar tiempo para el historial")
+            print(f"   - fecha_inicio: {estudiante_evaluacion.fecha_inicio}")
+            print(f"   - fecha_fin: {estudiante_evaluacion.fecha_fin}")
+            print(f"   - tiempo_total_ms: {estudiante_evaluacion.tiempo_total_ms}")
+            tiempo_total_ms = 0
         
         # Calcular puntaje sobre 10
         puntaje_sobre_10 = 0
@@ -2393,8 +2436,7 @@ def guardar_evaluacion_en_historial(estudiante_evaluacion):
             puntaje_total=estudiante_evaluacion.puntaje or 0,
             porcentaje_aprobacion=porcentaje_aprobacion,
             tiempo_total=tiempo_total,
-            # ELIMINAR LA SIGUIENTE LÍNEA
-            # color_clase=color_clase,  
+            tiempo_total_ms=tiempo_total_ms,
             detalles={
                 'respuestas': respuestas_data,
                 'fecha_creacion': evaluacion.fecha_creacion.isoformat(),
@@ -2628,4 +2670,154 @@ def get_evaluacion_resultados_completos(request, pk):
         return Response({
             'success': False,
             'message': f'Error al obtener resultados detallados: {str(e)}'
+        }, status=500)
+        
+        
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def eliminar_evaluacion_historial(request, historial_id):
+    """
+    Elimina una evaluación específica del historial
+    """
+    try:
+        # Verificar permisos - solo docentes o admin
+        user = request.user
+        is_admin = user.is_superuser or (hasattr(user, 'profile') and user.profile.rol == 'admin')
+        is_docente = hasattr(user, 'profile') and user.profile.rol == 'docente'
+        
+        if not (is_admin or is_docente):
+            return Response({
+                'success': False,
+                'message': 'No tiene permisos para realizar esta acción'
+            }, status=403)
+        
+        # Buscar la evaluación en el historial
+        historial = get_object_or_404(HistorialEvaluacion, id=historial_id)
+        
+        # Verificar que el docente sea el creador original (solo si no es admin)
+        if not is_admin and historial.docente_id != user.id:
+            return Response({
+                'success': False,
+                'message': 'Solo puedes eliminar evaluaciones que hayas creado'
+            }, status=403)
+        
+        # Eliminar del historial
+        evaluacion_titulo = historial.evaluacion_titulo
+        historial.delete()
+        
+        logger.info(f"Evaluación '{evaluacion_titulo}' eliminada del historial por {user.username}")
+        
+        return Response({
+            'success': True,
+            'message': f'Evaluación "{evaluacion_titulo}" eliminada del historial correctamente'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al eliminar evaluación del historial: {str(e)}")
+        return Response({
+            'success': False,
+            'message': f'Error al eliminar evaluación del historial: {str(e)}'
+        }, status=500)
+        
+        
+        
+# evaluations/views.py - AGREGAR al final del archivo
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated, (IsAdmin | IsDocente)])
+def platform_settings_view(request):
+    """
+    Vista para manejar configuraciones de la plataforma
+    Solo admins y docentes pueden modificar configuraciones
+    """
+    from .models import PlatformSettings
+    
+    if request.method == 'GET':
+        try:
+            # Obtener todas las configuraciones importantes
+            settings = {
+                'language_selector_enabled': PlatformSettings.get_language_selector_enabled(),
+                'default_language_id': PlatformSettings.get_setting('default_language_id', 71),
+            }
+            
+            return Response({
+                'success': True,
+                'settings': settings
+            })
+        except Exception as e:
+            logger.error(f"Error al obtener configuraciones: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Error al obtener configuraciones'
+            }, status=500)
+    
+    elif request.method == 'POST':
+        try:
+            setting_key = request.data.get('key')
+            setting_value = request.data.get('value')
+            
+            if not setting_key:
+                return Response({
+                    'success': False,
+                    'error': 'Clave de configuración requerida'
+                }, status=400)
+            
+            # Validar configuraciones permitidas
+            allowed_settings = [
+                'language_selector_enabled',
+                'default_language_id'
+            ]
+            
+            if setting_key not in allowed_settings:
+                return Response({
+                    'success': False,
+                    'error': f'Configuración {setting_key} no permitida'
+                }, status=400)
+            
+            # Guardar configuración
+            if setting_key == 'language_selector_enabled':
+                PlatformSettings.set_language_selector_enabled(bool(setting_value))
+            else:
+                PlatformSettings.set_setting(setting_key, setting_value)
+            
+            logger.info(f"Configuración actualizada por {request.user.username}: {setting_key} = {setting_value}")
+            
+            return Response({
+                'success': True,
+                'message': f'Configuración {setting_key} actualizada correctamente'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error al actualizar configuración: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al actualizar configuración: {str(e)}'
+            }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_language_selector_config(request):
+    """
+    Vista específica para obtener la configuración del selector de lenguajes
+    Disponible para todos los usuarios autenticados
+    """
+    from .models import PlatformSettings
+    
+    try:
+        enabled = PlatformSettings.get_language_selector_enabled()
+        default_language = PlatformSettings.get_setting('default_language_id', 71)
+        
+        return Response({
+            'success': True,
+            'language_selector_enabled': enabled,
+            'default_language_id': default_language
+        })
+    except Exception as e:
+        logger.error(f"Error al obtener configuración del selector: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Error al obtener configuración',
+            'language_selector_enabled': False,  # Por seguridad, deshabilitado por defecto
+            'default_language_id': 71
         }, status=500)

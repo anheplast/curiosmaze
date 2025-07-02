@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils.crypto import get_random_string
 import uuid
+import json
 from users.models import User  # Importa tu modelo de usuario existente
 
 
@@ -53,6 +54,40 @@ class Ejercicio(models.Model):
     creador_nombre = models.CharField(max_length=255, blank=True, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     tests_avanzados = models.JSONField(help_text="Tests avanzados en formato JSON", blank=True, null=True)
+    
+    @property
+    def templates_por_lenguaje(self):
+        """
+        Método helper para obtener templates por lenguaje
+        """
+        try:
+            if self.contenido:
+                contenido = self.contenido
+                
+                # Si contenido es string, parsearlo
+                if isinstance(contenido, str):
+                    try:
+                        contenido = json.loads(contenido)
+                    except json.JSONDecodeError:
+                        print(f"❌ Error al parsear contenido para ejercicio {self.id}")
+                        return {}
+                
+                # Verificar que contenido sea dict y tenga templates
+                if isinstance(contenido, dict) and 'templates' in contenido:
+                    templates = contenido['templates']
+                    if isinstance(templates, dict):
+                        print(f"✅ Modelo: Templates encontrados para ejercicio {self.id}: {templates}")
+                        return templates
+                    else:
+                        print(f"⚠️ Modelo: Templates no es dict para ejercicio {self.id}: {type(templates)}")
+                else:
+                    print(f"⚠️ Modelo: No hay campo 'templates' en contenido para ejercicio {self.id}")
+                    
+        except Exception as e:
+            print(f"❌ Error en templates_por_lenguaje para ejercicio {self.id}: {str(e)}")
+        
+        return {}
+    
     
     class Meta:
         verbose_name = 'Ejercicio'
@@ -173,6 +208,7 @@ class EstudianteEvaluacion(models.Model):
     ajustes_puntaje = models.FloatField(default=0, help_text="Ajustes adicionales al puntaje")
     progreso = models.PositiveIntegerField(default=0, help_text="Porcentaje de progreso")
     ip_acceso = models.GenericIPAddressField(null=True, blank=True)
+    tiempo_total_ms = models.BigIntegerField(null=True, blank=True, help_text="Tiempo total en milisegundos")
     
     class Meta:
         verbose_name = 'Participación en Evaluación'
@@ -254,6 +290,7 @@ class HistorialEvaluacion(models.Model):
     puntaje_total = models.FloatField(default=0)
     porcentaje_aprobacion = models.FloatField(default=0)
     tiempo_total = models.DurationField(null=True, blank=True)
+    tiempo_total_ms = models.BigIntegerField(null=True, blank=True, help_text="Tiempo total en milisegundos")
     
     # Detalles completos de la evaluación y respuestas
     detalles = models.JSONField(help_text="Detalles completos de la evaluación incluyendo respuestas", default=dict)
@@ -364,3 +401,65 @@ def test(actual, expected, message=""):
 
     # Si no se necesita, devolver el código sin cambios
     return codigo
+
+
+
+
+class PlatformSettings(models.Model):
+    """
+    Modelo para almacenar configuraciones de la plataforma
+    """
+    key = models.CharField(max_length=100, unique=True, help_text="Clave de configuración")
+    value = models.TextField(help_text="Valor de configuración (JSON)")
+    description = models.CharField(max_length=255, blank=True, help_text="Descripción de la configuración")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Configuración de Plataforma'
+        verbose_name_plural = 'Configuraciones de Plataforma'
+        ordering = ['key']
+    
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+    
+    @classmethod
+    def get_setting(cls, key, default=None):
+        """Obtener una configuración específica"""
+        try:
+            setting = cls.objects.get(key=key)
+            import json
+            return json.loads(setting.value)
+        except cls.DoesNotExist:
+            return default
+        except json.JSONDecodeError:
+            return setting.value if hasattr(setting, 'value') else default
+    
+    @classmethod
+    def set_setting(cls, key, value, description=""):
+        """Establecer una configuración específica"""
+        import json
+        value_str = json.dumps(value) if not isinstance(value, str) else str(value)
+        
+        setting, created = cls.objects.update_or_create(
+            key=key,
+            defaults={
+                'value': value_str,
+                'description': description
+            }
+        )
+        return setting
+    
+    @classmethod
+    def get_language_selector_enabled(cls):
+        """Obtener si el selector de lenguajes está habilitado"""
+        return cls.get_setting('language_selector_enabled', False)
+    
+    @classmethod
+    def set_language_selector_enabled(cls, enabled):
+        """Establecer si el selector de lenguajes está habilitado"""
+        return cls.set_setting(
+            'language_selector_enabled', 
+            enabled, 
+            'Habilitar/deshabilitar selector de lenguajes en el editor'
+        )

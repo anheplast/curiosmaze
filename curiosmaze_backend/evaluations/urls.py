@@ -39,7 +39,14 @@ urlpatterns = [
     path('historial-evaluaciones/', obtener_historial_evaluaciones, name='historial-evaluaciones'),
     path('historial/<int:historial_id>/', obtener_evaluacion_historial, name='evaluacion-historial'),
     
+    # NUEVA: Ruta para eliminar del historial
+    path('historial/<int:historial_id>/eliminar/', views.eliminar_evaluacion_historial, name='eliminar-evaluacion-historial'),
+    
     path('debug/historial/<int:evaluation_id>/', views.debug_historial, name='debug-historial'),
     
     path('evaluaciones/<int:pk>/resultados-completos/', get_evaluacion_resultados_completos, name='resultados-completos'),
+    
+    # Configuraciones de plataforma
+    path('platform-settings/', views.platform_settings_view, name='platform-settings'),
+    path('language-selector-config/', views.get_language_selector_config, name='language-selector-config'),
 ]

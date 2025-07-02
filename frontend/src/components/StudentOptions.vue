@@ -49,8 +49,9 @@
     <div class="help-section">
       <div class="help-icon">❓</div>
       <p>
-        ¿Necesitas ayuda? Puedes contactar a tu profesor o 
-        <a :href="formUrl" target="_blank" rel="noopener noreferrer" class="help-link">acceder al formulario de ayuda</a>.
+        ¿Necesitas ayuda? Puedes contactar a tu profesor o
+        <a :href="formUrl" target="_blank" rel="noopener noreferrer" class="help-link">acceder al formulario de
+          ayuda</a>.
       </p>
     </div>
   </div>
@@ -71,13 +72,13 @@ export default {
     const highlightOption = ref(null);
 
     // Obtener URL del formulario desde las variables de entorno
-    const formUrl = ref(import.meta.env.VITE_PASSWORD_RESET_FORM_URL || '#');
-    
+    const formUrl = ref(import.meta.env.VITE_HELP_FORM_URL || '#');
+
     onMounted(() => {
       // Obtener nombre del estudiante del store
       studentName.value = store.getters['auth/userName'] || 'Estudiante';
     });
-    
+
     const selectOption = (option) => {
       if (option === 'history') {
         router.push('/estudiante/historial-evaluaciones');
@@ -85,18 +86,18 @@ export default {
         emit('select-option', option);
       }
     };
-    
+
     const isHighlighted = (option) => {
       return highlightOption.value === option;
     };
-    
+
     // Función para cerrar sesión
     const logout = () => {
       store.dispatch('auth/logout').then(() => {
         router.push('/');
       });
     };
-    
+
     return {
       studentName,
       highlightOption,
@@ -120,7 +121,7 @@ export default {
   --color-text-primary: #ffffff;
   --color-text-secondary: #e0e0e0;
   --color-text-muted: #9090A0;
-  
+
   /* Paleta de colores */
   --color-primary: #EBB300;
   --color-primary-light: #FFD03F;
@@ -145,7 +146,8 @@ export default {
   border-top: 5px solid var(--color-primary, #EBB300);
   animation: fadeIn 0.5s ease-out;
   position: relative;
-  padding-top: 3.5rem; /* Asegura espacio suficiente para el logo */
+  padding-top: 3.5rem;
+  /* Asegura espacio suficiente para el logo */
 }
 
 /* Botón de cerrar sesión */
@@ -309,9 +311,11 @@ export default {
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.1);
   }
+
   100% {
     transform: scale(1);
   }
@@ -322,6 +326,7 @@ export default {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -333,19 +338,19 @@ export default {
   .student-options-container {
     padding: 1.5rem;
   }
-  
+
   .options-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .option-card {
     min-height: 220px;
   }
-  
+
   .title {
     font-size: 1.5rem;
   }
-  
+
   .subtitle {
     font-size: 1rem;
   }

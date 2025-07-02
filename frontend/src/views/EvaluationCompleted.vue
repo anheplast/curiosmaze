@@ -123,7 +123,7 @@
             <div class="exercise-code">
               <div class="code-header">
                 <span class="code-label">Solución:</span>
-                <span class="code-language">Python</span>
+                <span class="code-language">{{ getLanguageName(exercise.ejercicio_id || exercise.id) }}</span>
               </div>
               <pre class="code-block"><code>{{ exercise.codigo || 'Sin código' }}</code></pre>
               <div class="code-output" v-if="exercise.resultados">
@@ -162,6 +162,56 @@ import { useRoute, useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 import evaluationsService from '@/api/evaluationsService';
 
+const LANGUAGE_NAMES = {
+  45: "Assembly (NASM 2.14.02)",
+  46: "Bash (5.0.0)",
+  47: "Basic (FBC 1.07.1)",
+  75: "C (Clang 7.0.1)",
+  76: "C++ (Clang 7.0.1)",
+  48: "C (GCC 7.4.0)",
+  52: "C++ (GCC 7.4.0)",
+  49: "C (GCC 8.3.0)",
+  53: "C++ (GCC 8.3.0)",
+  50: "C (GCC 9.2.0)",
+  54: "C++ (GCC 9.2.0)",
+  86: "Clojure (1.10.1)",
+  51: "C# (Mono 6.6.0.161)",
+  77: "COBOL (GnuCOBOL 2.2)",
+  55: "Common Lisp (SBCL 2.0.0)",
+  56: "D (DMD 2.089.1)",
+  57: "Elixir (1.9.4)",
+  58: "Erlang (OTP 22.2)",
+  44: "Executable",
+  87: "F# (.NET Core SDK 3.1.202)",
+  59: "Fortran (GFortran 9.2.0)",
+  60: "Go (1.13.5)",
+  88: "Groovy (3.0.3)",
+  61: "Haskell (GHC 8.8.1)",
+  62: "Java (OpenJDK 13.0.1)",
+  63: "JavaScript (Node.js 12.14.0)",
+  78: "Kotlin (1.3.70)",
+  64: "Lua (5.3.5)",
+  89: "Multi-file program",
+  79: "Objective-C (Clang 7.0.1)",
+  65: "OCaml (4.09.0)",
+  66: "Octave (5.1.0)",
+  67: "Pascal (FPC 3.0.4)",
+  85: "Perl (5.28.1)",
+  68: "PHP (7.4.1)",
+  43: "Plain Text",
+  69: "Prolog (GNU Prolog 1.4.5)",
+  70: "Python (2.7.17)",
+  71: "Python (3.8.1)",
+  80: "R (4.0.0)",
+  72: "Ruby (2.7.0)",
+  73: "Rust (1.40.0)",
+  81: "Scala (2.13.2)",
+  82: "SQL (SQLite 3.27.2)",
+  83: "Swift (5.2.3)",
+  74: "TypeScript (3.7.4)",
+  84: "Visual Basic.Net (vbnc 0.0.0.5943)"
+};
+
 export default {
   name: 'EvaluationCompleted',
   props: {
@@ -187,9 +237,27 @@ export default {
     
     // Computeds
     const evaluationId = computed(() => {
-      return props.evaluation_id || 
-             route.query.evaluation_id || 
-             localStorage.getItem('completedEvaluationId');
+      // PRIORIDAD 1: Props
+      if (props.evaluation_id) {
+        console.log(`🔍 ID desde props: ${props.evaluation_id}`);
+        return props.evaluation_id;
+      }
+
+      // PRIORIDAD 2: Query params de la URL
+      if (route.query.evaluation_id) {
+        console.log(`🔍 ID desde query: ${route.query.evaluation_id}`);
+        return route.query.evaluation_id;
+      }
+
+      // PRIORIDAD 3: LocalStorage (solo como último recurso)
+      const storedId = localStorage.getItem('completedEvaluationId');
+      if (storedId) {
+        console.log(`🔍 ID desde localStorage: ${storedId}`);
+        return storedId;
+      }
+
+      console.warn("⚠️ No se pudo determinar ID de evaluación");
+      return null;
     });
 
     // Estado de carga y error mejorados
@@ -250,6 +318,97 @@ export default {
     // Obtener ID del usuario actual (método de utilidad)
     const getCurrentUserId = () => {
       return currentUserId.value;
+    };
+
+
+    // Función para obtener el nombre del lenguaje por ejercicio
+    const getLanguageName = (exerciseId) => {
+      try {
+        // Buscar el ejercicio en los datos
+        const exercise = exercises.value.find(ex => 
+          ex.ejercicio_id === exerciseId || ex.id === exerciseId
+        );
+
+        if (exercise && exercise.codigo) {
+          const code = exercise.codigo.trim();
+          console.log(`🔍 Detectando lenguaje para ejercicio ${exerciseId} desde código`);
+          
+          // Detectar lenguaje basado en patrones únicos del código
+          
+          // Python
+          if (code.includes('print(') && !code.includes('System.out.print') && !code.includes('console.log')) {
+            console.log(`✅ Detectado Python para ejercicio ${exerciseId}`);
+            return 'Python (3.8.1)';
+          }
+          
+          // JavaScript
+          if (code.includes('console.log') || code.includes('function ') || 
+              (code.includes('let ') || code.includes('const ') || code.includes('var ')) && 
+              !code.includes('#include')) {
+            console.log(`✅ Detectado JavaScript para ejercicio ${exerciseId}`);
+            return 'JavaScript (Node.js 12.14.0)';
+          }
+          
+          // C#
+          if (code.includes('using System') || code.includes('Console.WriteLine') || 
+              code.includes('class Program') && code.includes('static void Main')) {
+            console.log(`✅ Detectado C# para ejercicio ${exerciseId}`);
+            return 'C# (Mono 6.6.0.161)';
+          }
+          
+          // Java
+          if (code.includes('public class') && code.includes('public static void main') && 
+              code.includes('System.out.print')) {
+            console.log(`✅ Detectado Java para ejercicio ${exerciseId}`);
+            return 'Java (OpenJDK 13.0.1)';
+          }
+          
+          // C++
+          if (code.includes('#include <iostream>') || 
+              (code.includes('#include') && (code.includes('cout') || code.includes('std::cout')))) {
+            console.log(`✅ Detectado C++ para ejercicio ${exerciseId}`);
+            return 'C++ (GCC 9.2.0)';
+          }
+          
+          // C
+          if (code.includes('#include <stdio.h>') || 
+              (code.includes('#include') && code.includes('printf'))) {
+            console.log(`✅ Detectado C para ejercicio ${exerciseId}`);
+            return 'C (GCC 9.2.0)';
+          }
+          
+          // Go
+          if (code.includes('package main') && code.includes('fmt.Print')) {
+            console.log(`✅ Detectado Go para ejercicio ${exerciseId}`);
+            return 'Go (1.13.5)';
+          }
+          
+          // Rust
+          if (code.includes('fn main()') && code.includes('println!')) {
+            console.log(`✅ Detectado Rust para ejercicio ${exerciseId}`);
+            return 'Rust (1.40.0)';
+          }
+          
+          // PHP
+          if (code.includes('<?php') || code.includes('echo ')) {
+            console.log(`✅ Detectado PHP para ejercicio ${exerciseId}`);
+            return 'PHP (7.4.1)';
+          }
+          
+          // Ruby
+          if (code.includes('puts ') && !code.includes('#include')) {
+            console.log(`✅ Detectado Ruby para ejercicio ${exerciseId}`);
+            return 'Ruby (2.7.0)';
+          }
+        }
+        
+        // Si no se puede detectar, usar Python por defecto
+        console.log(`⚠️ No se pudo detectar lenguaje para ejercicio ${exerciseId}, usando Python por defecto`);
+        return 'Python (3.8.1)';
+      } catch (error) {
+        console.warn('❌ Error al detectar lenguaje:', error);
+        return 'Python (3.8.1)';
+      }
     };
 
     // Obtener nombre del usuario
@@ -935,18 +1094,24 @@ export default {
           maxScore.value = evalData.puntaje_maximo || 0;
           scaledScore.value = parseFloat(evalData.puntaje_sobre_10) || 0;
 
-          // Intentar obtener tiempo total
-          if (evalData.tiempo_total) {
+          // Obtener tiempo total desde la API (ya incluido en evalData)
+          if (evalData.tiempo_total_ms) {
+            completionTime.value = evalData.tiempo_total_ms;
+            console.log("⏱️ Tiempo obtenido desde BD:", completionTime.value);
+          } else if (evalData.tiempo_total) {
             completionTime.value = parseTimeDuration(evalData.tiempo_total);
+            console.log("⏱️ Tiempo parseado desde tiempo_total:", completionTime.value);
           } else {
-            // Intentar calcular desde timestamps
+            // Fallback: calcular desde fechas o localStorage
             if (evalData.fecha_fin && evalData.fecha_inicio) {
               const start = new Date(evalData.fecha_inicio);
               const end = new Date(evalData.fecha_fin);
               completionTime.value = end - start;
+              console.log("⏱️ Tiempo calculado desde fechas:", completionTime.value);
             } else {
-              // Intentar calcular desde localStorage
-              const startTime = parseInt(localStorage.getItem(`evaluationStartTime_${userId}`) || localStorage.getItem('evaluationStartTime') || '0');
+              // Último recurso: localStorage
+              const userId = getCurrentUserId();
+              const startTime = parseInt(localStorage.getItem(`evaluationStartTime_${userId}`) || '0');
               const endTime = parseInt(localStorage.getItem(`evaluationEndTime_${userId}`) || '0');
 
               if (startTime > 0 && endTime > 0) {
@@ -1283,7 +1448,8 @@ export default {
       getCompletedExercisesCount,
       calculateAccuracy,
       getScoreColorClass,
-      formatCompletionTime
+      formatCompletionTime,
+      getLanguageName
     };
   }
 }
@@ -1882,7 +2048,7 @@ export default {
 .certificate-stamp {
   display: inline-block;
   font-family: 'Brush Script MT', cursive;
-  font-size: 2.5rem;
+  font-size: 2rem;
   color: rgba(255, 255, 255, 0.15);
   transform: rotate(-5deg);
   position: relative;
@@ -1907,8 +2073,8 @@ export default {
 
 .logo-container {
   position: absolute;
-  top: -13px;
-  right: 10px;
+  top: -12px;
+  right: -2px;
   width: 50px;
   height: 50px;
   display: flex;

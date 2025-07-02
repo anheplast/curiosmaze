@@ -1,6 +1,10 @@
 // router/index.js
 
 import { createRouter, createWebHistory } from "vue-router";
+
+// Vista inicial
+import LandingHome from '@/views/LandingHome.vue'
+
 // Vista de login y componentes
 import Login from "../views/LoginView.vue"; // Vista de inicio de sesión
 // Vista de Dashboard
@@ -26,166 +30,171 @@ import StudentDashboard from "@/views/StudentDashboard.vue"; // Dashboard de est
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Rutas de la aplicación
+    // Ruta principal - Landing Page (accesible para todos)
     {
-      // Ruta de inicio de sesión
       path: "/",
+      name: "LandingHome",
+      component: LandingHome,
+      // Sin restricciones, disponible para todos los visitantes
+    },
+    // Ruta específica para login
+    {
+      path: "/login",
       name: "LoginView",
       component: Login,
-      // Evitar que usuarios ya autenticados vean la página de login
-      meta: { guestOnly: true }
+      meta: { guestOnly: true },
     },
     {
       // Rutas de estudiante
       path: "/evaluation-access",
       name: "EvaluationAccess",
       component: LoginEvaluationView,
-      meta: { requiresAuth: true, role: 'estudiante' }
+      meta: { requiresAuth: true, role: "estudiante" },
     },
     {
       path: "/estudiante/dashboard",
       name: "StudentDashboard",
       component: StudentDashboard,
-      meta: { requiresAuth: true, role: 'estudiante' }
+      meta: { requiresAuth: true, role: "estudiante" },
     },
     {
-      path: '/estudiante/historial-evaluaciones',
-      name: 'EvaluationHistory',
-      component: () => import('../views/EvaluationHistoryView.vue'),
-      meta: { 
+      path: "/estudiante/historial-evaluaciones",
+      name: "EvaluationHistory",
+      component: () => import("../views/EvaluationHistoryView.vue"),
+      meta: {
         requiresAuth: true,
-        allowMultipleRoles: true // Permitir múltiples roles
-      }
+        allowMultipleRoles: true, // Permitir múltiples roles
+      },
     },
     // Mejorada: Ruta de resolución de ejercicios con props
     {
       path: "/resolucion-ejercicios-practicos",
       name: "PracticalExercises",
       component: PracticalExercises,
-      meta: { 
-        requiresAuth: true, 
-        role: 'estudiante',
-        allowMultipleRoles: true // Permitir acceso a docentes también
+      meta: {
+        requiresAuth: true,
+        role: "estudiante",
+        allowMultipleRoles: true, // Permitir acceso a docentes también
       },
-      props: route => ({ evaluation_id: route.query.evaluation_id })
+      props: (route) => ({ evaluation_id: route.query.evaluation_id }),
     },
     // Ruta para ver resultados de evaluación
     {
       path: "/evaluacion-completada",
       name: "EvaluationCompleted",
       component: EvaluationCompleted,
-      meta: { requiresAuth: true, role: 'estudiante' },
-      props: route => ({ evaluation_id: route.query.evaluation_id })
+      meta: { requiresAuth: true, role: "estudiante" },
+      props: (route) => ({ evaluation_id: route.query.evaluation_id }),
     },
     // Rutas de docente
     {
       path: "/docente/dashboard",
       name: "DocenteDashboard",
       component: Dashboard,
-      meta: { requiresAuth: true, role: 'docente' },
+      meta: { requiresAuth: true, role: "docente" },
       children: [
         {
           // Ruta por defecto - muestra la información general
           path: "",
           name: "DocenteHome",
-          component: () => import("@/components/DocenteHome.vue"),  // Crea este componente o reemplaza con uno existente
+          component: () => import("@/components/CreateEvaluation.vue"),
         },
         {
           path: "crear-ejercicio",
           name: "CreateExercise",
-          component: () => import("@/components/CreateExercise.vue")
+          component: () => import("@/components/CreateExercise.vue"),
         },
         // Nuevas rutas para evaluaciones
         {
           path: "crear-evaluacion",
           name: "CreateEvaluation",
-          component: CreateEvaluation
+          component: CreateEvaluation,
         },
         {
           path: "evaluaciones",
           name: "ManageEvaluations",
-          component: ManageEvaluations
+          component: ManageEvaluations,
         },
         {
           path: "editar-evaluacion/:id",
           name: "EditEvaluation",
           component: CreateEvaluation,
-          props: true
+          props: true,
         },
         // Ruta para gestión de estudiantes
         {
           path: "estudiantes",
           name: "TeacherStudentManagement",
-          component: TeacherStudentManagement
+          component: TeacherStudentManagement,
         },
         {
           path: "repositorio-ejercicios",
           name: "TeacherExerciseRepository",
-          component: () => import("@/components/ExerciseRepository.vue")
+          component: () => import("@/components/ExerciseRepository.vue"),
         },
-      ]
+      ],
     },
     // Rutas de admin
     {
       path: "/admin/dashboard",
       name: "AdminDashboard",
       component: Dashboard,
-      meta: { requiresAuth: true, role: 'admin' },
+      meta: { requiresAuth: true, role: "admin" },
       children: [
         {
           // Ruta por defecto
           path: "",
           name: "AdminHome",
-          component: () => import("@/components/AdminHome.vue")
+          component: () => import("@/components/AdminHome.vue"),
         },
         {
           path: "crear-ejercicio",
           name: "AdminCreateExercise",
-          component: () => import("@/components/CreateExercise.vue")
+          component: () => import("@/components/CreateExercise.vue"),
         },
         // Gestión de usuarios
         {
           path: "gestion-usuarios",
           name: "UserManagement",
-          component: () => import("@/components/admin/UserManagement.vue")
+          component: () => import("@/components/admin/UserManagement.vue"),
         },
         {
           path: "repositorio-ejercicios",
           name: "AdminExerciseRepository",
-          component: () => import("@/components/ExerciseRepository.vue")
+          component: () => import("@/components/ExerciseRepository.vue"),
         },
-      ]
+      ],
     },
     // Ruta para resolver ejercicios teóricos
-    // Esta ruta solo esta como una idea, ya que no se ha implementado 
+    // Esta ruta solo esta como una idea, ya que no se ha implementado
     {
       path: "/resolucion-ejercicios-teoricos",
       name: "TheoreticalExercises",
       component: TheoricExercises,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true },
     },
     // Ruta de redirección para la ruta de dashboard
     {
-      path: '/dashboard',
-      redirect: to => {
+      path: "/dashboard",
+      redirect: (to) => {
         // Obtener el rol del usuario desde localStorage
-        const userRole = localStorage.getItem('user_role');
-        if (userRole === 'docente') {
-          return '/docente/dashboard';
-        } else if (userRole === 'admin') {
-          return '/admin/dashboard';
-        } else if (userRole === 'estudiante') {
-          return '/estudiante/dashboard'; // Redirige al dashboard de estudiante
+        const userRole = localStorage.getItem("user_role");
+        if (userRole === "docente") {
+          return "/docente/dashboard";
+        } else if (userRole === "admin") {
+          return "/admin/dashboard";
+        } else if (userRole === "estudiante") {
+          return "/estudiante/dashboard"; // Redirige al dashboard de estudiante
         } else {
-          return '/'; // Redirigir al login si no hay rol definido
+          return "/login"; // Redirigir al login si no hay rol definido
         }
-      }
+      },
     },
     // Ruta para manejar 404
     {
-      path: '/:pathMatch(.*)*',
-      redirect: '/'
-    }
+      path: "/:pathMatch(.*)*",
+      redirect: "/login", // Redirigir al login para páginas no encontradas
+    },
   ],
 });
 
@@ -207,7 +216,7 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth) {
     if (!token) {
       // Si se requiere autenticación pero no hay token, redirigir al login
-      return next("/");
+      return next("/login");
     }
 
     // Si la ruta requiere un rol específico y NO permite múltiples roles
@@ -225,7 +234,7 @@ router.beforeEach((to, from, next) => {
         localStorage.removeItem("user_role");
         localStorage.removeItem("user_id");
         localStorage.removeItem("user_name");
-        return next("/");
+        return next("/login");
       }
     }
 

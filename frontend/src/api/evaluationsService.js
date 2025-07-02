@@ -6,9 +6,43 @@ import { v4 as uuidv4 } from "uuid"; // Para generar IDs únicos de tracking
 const JUDGE0_API_URL = import.meta.env.VITE_JUDGE0_API_URL;
 const JUDGE0_TIMEOUT = parseInt(import.meta.env.VITE_JUDGE0_TIMEOUT || "60000");
 
+
+
+// Función para obtener el lenguaje guardado para un ejercicio específico
+const getLanguageForExercise = (exerciseId) => {
+  try {
+    const userId = localStorage.getItem('user_id') || 'anonymous';
+    const evalData = localStorage.getItem('currentEvaluation');
+    let evaluationId = 'unknown';
+
+    try {
+      const parsedEvaluation = JSON.parse(evalData);
+      evaluationId = parsedEvaluation?.id || 'unknown';
+    } catch (e) {
+      console.warn('Error al parsear evaluación de localStorage');
+    }
+
+    const languageKey = `exercise_language_${userId}_${evaluationId}_${exerciseId}`;
+    const savedLanguage = localStorage.getItem(languageKey);
+    
+    if (savedLanguage) {
+      const langId = parseInt(savedLanguage);
+      console.log(`Lenguaje recuperado para ejercicio ${exerciseId}: ${langId}`);
+      return langId;
+    } else {
+      console.log(`No hay lenguaje guardado para ejercicio ${exerciseId}, usando Python por defecto`);
+      return 71; // Python por defecto
+    }
+  } catch (error) {
+    console.warn('Error al obtener lenguaje para ejercicio:', error);
+    return 71; // Python por defecto en caso de error
+  }
+};
+
+
+
 // Servicio para gestionar evaluaciones
 const evaluationsService = {
-
   // ---------- MÉTODOS PARA GESTIÓN DE EVALUACIONES ----------
   async getEvaluaciones() {
     try {
@@ -136,6 +170,20 @@ const evaluationsService = {
         throw error;
       });
   },
+
+
+  // Eliminar evaluacion del historial
+  async eliminarEvaluacionHistorial(historialId) {
+    try {
+      console.log(`Eliminando evaluación del historial ID: ${historialId}`);
+      const response = await apiClient.delete(`/historial/${historialId}/eliminar/`);
+      return response;
+    } catch (error) {
+      console.error(`Error al eliminar evaluación del historial ${historialId}:`, error);
+      throw error;
+    }
+  },
+
 
   async crearEvaluacion(datos) {
     try {
@@ -324,7 +372,7 @@ const evaluationsService = {
     const startTime = Date.now();
     const url = `${JUDGE0_API_URL}/submissions/${token}?fields=*&base64_encoded=false`;
 
-    // Bucle de espera con timeout 
+    // Bucle de espera con timeout
     while (Date.now() - startTime < JUDGE0_TIMEOUT) {
       try {
         const response = await fetch(url, {
@@ -410,7 +458,7 @@ const evaluationsService = {
         `[Batch:${batchId}] Preparando ${data.ejercicios.length} ejercicios para envío...`
       );
 
-      // Filtrar ejercicios válidos y formatear para Judge0 
+      // Filtrar ejercicios válidos y formatear para Judge0
       const ejerciciosValidos = data.ejercicios.filter((ej) => ej && ej.ejercicio_id);
       console.log(`[Batch:${batchId}] Ejercicios válidos: ${ejerciciosValidos.length}`);
 
@@ -419,10 +467,14 @@ const evaluationsService = {
 
       for (let i = 0; i < ejerciciosValidos.length; i++) {
         const ej = ejerciciosValidos[i];
+
+        // Obtener lenguaje del ejercicio o usar Python por defecto
+        const languageId = ej.language_id || 71;
+
         console.log(
           `[Batch:${batchId}] Ejercicio #${i + 1} - ID: ${ej.ejercicio_id}, Código: ${
             ej.codigo ? ej.codigo.substring(0, 50) + "..." : "(vacío)"
-          }`
+          }, Lenguaje: ${languageId}`
         );
 
         // Buscar el ejercicio completo para obtener los ejemplos
@@ -458,7 +510,7 @@ const evaluationsService = {
         // Crear la submission para Judge0
         submissionsForJudge0.push({
           source_code: ej.codigo || "",
-          language_id: 71, // Python 3
+          language_id: languageId, // MODIFICADO: usar lenguaje específico del ejercicio
           stdin,
           expected_output,
           base64_encoded: false,
@@ -476,7 +528,7 @@ const evaluationsService = {
         `[Batch:${batchId}] ${submissionsForJudge0.length} ejercicios preparados para Judge0`
       );
 
-      // PASO 3: Enviar batch a Judge0 
+      // PASO 3: Enviar batch a Judge0
       console.log(`[Batch:${batchId}] Enviando batch a Judge0...`);
       const judge0Response = await fetch(`${JUDGE0_API_URL}/submissions/batch`, {
         method: "POST",
@@ -493,7 +545,7 @@ const evaluationsService = {
         `[Batch:${batchId}] Respuesta de Judge0 recibida con ${responseJson.length} elementos`
       );
 
-      // PASO 4: Extraer tokens 
+      // PASO 4: Extraer tokens
       const tokens = responseJson.filter((item) => item?.token).map((item) => item.token);
 
       if (!tokens.length) {
@@ -513,7 +565,7 @@ const evaluationsService = {
         }
       });
 
-      // PASO 6: Esperar resultados 
+      // PASO 6: Esperar resultados
       console.log(`[Batch:${batchId}] ⏳ Esperando resultados de Judge0...`);
       const startTime = Date.now();
 
@@ -652,7 +704,33 @@ const evaluationsService = {
         )}/10)`
       );
 
-      // PASO 8: Enviar resultados a nuestro backend
+      // PASO 8: Calcular tiempo total para enviar al backend
+      let tiempoTotalMs = 0;
+      try {
+        const userId = localStorage.getItem("user_id") || "anonymous";
+        const startTime = parseInt(
+          localStorage.getItem(`evaluationStartTime_${userId}`) ||
+            localStorage.getItem("evaluationStartTime") ||
+            "0"
+        );
+        const endTime = Date.now();
+
+        if (startTime > 0) {
+          tiempoTotalMs = endTime - startTime;
+          console.log(
+            `[Batch:${batchId}] ⏱️ Tiempo calculado para envío: ${tiempoTotalMs}ms (${Math.round(
+              tiempoTotalMs / 1000
+            )}s)`
+          );
+
+          // Guardar tiempo de finalización
+          localStorage.setItem(`evaluationEndTime_${userId}`, endTime.toString());
+        }
+      } catch (e) {
+        console.warn(`[Batch:${batchId}] Error al calcular tiempo:`, e);
+      }
+
+      // PASO 9: Enviar resultados al backend con el tiempo 
       console.log(`[Batch:${batchId}] Enviando resultados al backend...`);
       const response = await apiClient.post("/submit-batch/", {
         evaluacion_id: data.evaluacion_id,
@@ -662,6 +740,7 @@ const evaluationsService = {
         total_puntaje,
         puntaje_maximo,
         puntaje_sobre_10: parseFloat(puntaje_sobre_10.toFixed(2)),
+        tiempo_total_ms: tiempoTotalMs, // NUEVO: Enviar tiempo calculado
       });
 
       // ASEGURARSE DE QUE EL BACKEND PROCESÓ CORRECTAMENTE
@@ -801,13 +880,32 @@ const evaluationsService = {
       const userId = localStorage.getItem("user_id");
       console.log(`Finalizando evaluación ${evaluationId} para usuario ${userId}`);
 
+      // Calcular tiempo total desde localStorage
+      let tiempoTotalMs = null;
+      const startTime = parseInt(
+        localStorage.getItem(`evaluationStartTime_${userId}`) ||
+          localStorage.getItem("evaluationStartTime") ||
+          "0"
+      );
+      const endTime = Date.now(); // Usar tiempo actual como fin
+
+      if (startTime > 0) {
+        tiempoTotalMs = endTime - startTime;
+        console.log(
+          `⏱️ Tiempo calculado para enviar: ${tiempoTotalMs}ms (${Math.round(
+            tiempoTotalMs / 1000
+          )}s)`
+        );
+      }
+
       const response = await apiClient.post(`/evaluaciones/${evaluationId}/finalizar/`, {
         estudiante_id: userId,
+        tiempo_total_ms: tiempoTotalMs, // NUEVO: enviar tiempo calculado
         timestamp: new Date().toISOString(),
       });
 
-      // Registrar fin en localStorage con ID de usuario
-      localStorage.setItem(`evaluationEndTime_${userId}`, Date.now().toString());
+      // Registrar fin en localStorage
+      localStorage.setItem(`evaluationEndTime_${userId}`, endTime.toString());
 
       return response;
     } catch (error) {
@@ -840,9 +938,6 @@ const evaluationsService = {
       throw error;
     }
   },
-
-
-  
 
   /**
    * Obtiene resultados completos de una evaluación

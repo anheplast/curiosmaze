@@ -11,15 +11,16 @@
             </div>
         </div>
         
-        <!-- Categoría: Navegación -->
+        <!-- Categoría: Navegación 
         <div class="sidebar-category">
             <div class="category-indicator">
                 <div class="sidebar-dot"></div> 
                 <div class="sidebar-label">NAVEGACIÓN</div> 
             </div>
         </div>
+        -->
 
-        <!-- Home icon -->
+        <!-- Home icon 
         <a href="#" class="sidebar-item"
             @click.prevent="$router.push(userRole === 'admin' ? '/admin/dashboard' : '/docente/dashboard')">
             <div class="sidebar-item-icon">
@@ -30,6 +31,7 @@
                 <span>Panel principal</span>
             </div>
         </a>
+        -->
         
         <!-- Categoría: Contenido -->
         <div class="sidebar-category">

@@ -1618,4 +1618,25 @@ body {
     padding: 1.5rem;
   }
 }
+
+/* Estilos para tema oscuro */
+@media (prefers-color-scheme: dark) {
+  .recovery-info {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border-left-color: #ffd700;
+  }
+  
+  .recovery-info h3.subtitle {
+    color: #f0f0f0;
+  }
+  
+  .recovery-info p {
+    color: #d0d0d0;
+  }
+  
+  .recovery-info li {
+    color: #d0d0d0;
+  }
+}
 </style>
