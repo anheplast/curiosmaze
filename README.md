@@ -58,7 +58,7 @@ Algunas capturas de la plataforma en funcionamiento.
 
 ## ⚙️ Archivos de inicio y configuración
 
-A continuación se describen los scripts incluidos para facilitar la configuración y ejecución del proyecto en entornos de desarrollo:
+Scripts incluidos para facilitar la configuración y ejecución del proyecto en entornos de desarrollo:
 
 | Archivo | Descripción |
 |--------|-------------|
