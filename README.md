@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.1-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.2.5-blue" alt="Version">
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
   <img src="https://img.shields.io/badge/Vue.js-3.x-42b883" alt="Vue 3">
   <img src="https://img.shields.io/badge/Django-REST-ff1709" alt="Django">
@@ -23,7 +23,7 @@ La plataforma está construida siguiendo una arquitectura cliente-servidor:
 | Componente | Tecnología | Descripción |
 |------------|------------|-------------|
 | **Frontend** | Vue.js 3 | Interfaz de usuario moderna y reactiva |
-| **Backend** | Django REST | API robusta para gestión de datos |
+| **Backend** | Django REST | API para gestión de datos |
 | **Ejecución de código** | Judge0 | Sistema externo para ejecución segura de código |
 | **Base de datos** | SQLite (desarrollo) | Almacenamiento de datos (configurable para PostgreSQL en producción) |
 
