@@ -4628,3 +4628,42 @@ INFO 2025-07-01 22:29:05,322 middleware 8560 7808 API: GET /api/language-selecto
 INFO 2025-07-01 22:29:05,327 basehttp 8560 7808 "GET /api/language-selector-config/ HTTP/1.1" 200 74
 INFO 2025-07-01 22:30:06,313 middleware 8560 14900 API: GET /api/language-selector-config/
 INFO 2025-07-01 22:30:06,322 basehttp 8560 14900 "GET /api/language-selector-config/ HTTP/1.1" 200 74
+INFO 2025-07-11 03:28:25,270 autoreload 15457 125509274460288 Watching for file changes with StatReloader
+INFO 2025-07-11 03:29:31,802 autoreload 15731 134222451908736 Watching for file changes with StatReloader
+INFO 2025-07-11 03:57:50,040 middleware 15731 134222389966528 API: GET /api/users/csrf-token/
+INFO 2025-07-11 03:57:50,077 basehttp 15731 134222389966528 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-07-11 03:57:50,119 basehttp 15731 134222381573824 "OPTIONS /api/users/login/ HTTP/1.1" 200 0
+INFO 2025-07-11 03:57:50,123 middleware 15731 134222389966528 API: POST /api/users/login/
+WARNING 2025-07-11 03:57:50,248 middleware 15731 134222389966528 Respuesta con error: 404 para POST /api/users/login/
+WARNING 2025-07-11 03:57:50,250 basehttp 15731 134222389966528 "POST /api/users/login/ HTTP/1.1" 404 84
+INFO 2025-07-11 03:58:26,391 middleware 15731 134222389966528 API: GET /api/users/csrf-token/
+INFO 2025-07-11 03:58:26,394 basehttp 15731 134222389966528 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-07-11 03:58:26,454 middleware 15731 134222389966528 API: POST /api/users/login/
+WARNING 2025-07-11 03:58:26,458 middleware 15731 134222389966528 Respuesta con error: 404 para POST /api/users/login/
+WARNING 2025-07-11 03:58:26,460 basehttp 15731 134222389966528 "POST /api/users/login/ HTTP/1.1" 404 84
+INFO 2025-07-11 03:58:26,530 middleware 15731 134222389966528 API: GET /api/users/csrf-token/
+INFO 2025-07-11 03:58:26,533 basehttp 15731 134222389966528 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-07-11 03:58:26,565 middleware 15731 134222389966528 API: POST /api/users/login/
+WARNING 2025-07-11 03:58:26,570 middleware 15731 134222389966528 Respuesta con error: 404 para POST /api/users/login/
+WARNING 2025-07-11 03:58:26,573 basehttp 15731 134222389966528 "POST /api/users/login/ HTTP/1.1" 404 84
+INFO 2025-07-11 04:00:35,328 middleware 15731 134222389966528 API: GET /api/users/csrf-token/
+INFO 2025-07-11 04:00:35,339 basehttp 15731 134222389966528 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-07-11 04:00:35,384 middleware 15731 134222389966528 API: GET /api/users/csrf-token/
+INFO 2025-07-11 04:00:35,386 basehttp 15731 134222389966528 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-07-11 04:00:35,427 middleware 15731 134222389966528 API: POST /api/users/login/
+INFO 2025-07-11 04:00:35,433 middleware 15731 134222381573824 API: POST /api/users/login/
+WARNING 2025-07-11 04:00:36,210 middleware 15731 134222389966528 Respuesta con error: 401 para POST /api/users/login/
+WARNING 2025-07-11 04:00:36,214 basehttp 15731 134222389966528 "POST /api/users/login/ HTTP/1.1" 401 67
+WARNING 2025-07-11 04:00:36,242 middleware 15731 134222381573824 Respuesta con error: 401 para POST /api/users/login/
+WARNING 2025-07-11 04:00:36,243 basehttp 15731 134222381573824 "POST /api/users/login/ HTTP/1.1" 401 67
+INFO 2025-07-11 04:00:40,666 middleware 15731 134222381573824 API: GET /api/users/csrf-token/
+INFO 2025-07-11 04:00:40,669 basehttp 15731 134222381573824 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-07-11 04:00:40,759 middleware 15731 134222389966528 API: GET /api/users/csrf-token/
+INFO 2025-07-11 04:00:40,762 basehttp 15731 134222389966528 "GET /api/users/csrf-token/ HTTP/1.1" 200 29
+INFO 2025-07-11 04:00:40,793 middleware 15731 134222381573824 API: POST /api/users/login/
+INFO 2025-07-11 04:00:40,799 middleware 15731 134222389966528 API: POST /api/users/login/
+INFO 2025-07-11 04:00:41,612 basehttp 15731 134222389966528 "POST /api/users/login/ HTTP/1.1" 200 319
+INFO 2025-07-11 04:00:41,612 basehttp 15731 134222381573824 "POST /api/users/login/ HTTP/1.1" 200 319
+INFO 2025-07-11 04:00:42,658 basehttp 15731 134222372132544 "OPTIONS /api/language-selector-config/ HTTP/1.1" 200 0
+INFO 2025-07-11 04:00:42,663 middleware 15731 134222381573824 API: GET /api/language-selector-config/
+INFO 2025-07-11 04:00:42,676 basehttp 15731 134222381573824 "GET /api/language-selector-config/ HTTP/1.1" 200 75
