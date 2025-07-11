@@ -2,9 +2,6 @@
 
 import { createRouter, createWebHistory } from "vue-router";
 
-// Vista inicial
-import LandingHome from '@/views/LandingHome.vue'
-
 // Vista de login y componentes
 import Login from "../views/LoginView.vue"; // Vista de inicio de sesión
 // Vista de Dashboard
@@ -30,13 +27,6 @@ import StudentDashboard from "@/views/StudentDashboard.vue"; // Dashboard de est
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Ruta principal - Landing Page (accesible para todos)
-    {
-      path: "/",
-      name: "LandingHome",
-      component: LandingHome,
-      // Sin restricciones, disponible para todos los visitantes
-    },
     // Ruta específica para login
     {
       path: "/login",
