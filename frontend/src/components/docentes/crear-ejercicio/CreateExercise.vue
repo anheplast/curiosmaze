@@ -383,7 +383,7 @@
 </template>
 
 <script>
-import MarkdownEditor from '@/components/MarkdownEditor.vue';
+import MarkdownEditor from '@/components/crear-ejercicio/MarkdownEditor.vue';
 
 import { defineComponent, ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import judge0Service from '@/services/judge0Service';

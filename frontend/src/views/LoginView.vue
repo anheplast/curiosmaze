@@ -16,7 +16,7 @@
 <script setup>
 import BackgroundLogin from '@/components/BackgroundLogin/BackgroundLogin.vue';
 import EffectNoise from '@/components/EffectNoise.vue';
-import LoginBox from '@/components/LoginBox.vue';
+import LoginBox from '@/components/auth/LoginBox.vue';
 </script>
 
 <style scoped>

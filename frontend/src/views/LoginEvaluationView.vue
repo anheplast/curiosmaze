@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import EvaluationAccess from '@/components/EvaluationAccess.vue';
+import EvaluationAccess from '@/components/estudiantes/EvaluationAccess.vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
 

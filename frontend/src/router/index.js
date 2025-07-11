@@ -14,10 +14,10 @@ import TheoricExercises from "@/views/TheoricExercises.vue";
 // Vista de acceso a evaluación
 import LoginEvaluationView from "@/views/LoginEvaluationView.vue";
 // Componente de evaluación
-import CreateEvaluation from "@/components/CreateEvaluation.vue"; // Crear evaluación
-import ManageEvaluations from "@/components/ManageEvaluations.vue"; // Gestionar evaluaciones
+import CreateEvaluation from "@/components/docentes/crear-evaluacion/CreateEvaluation.vue"; // Crear evaluación
+import ManageEvaluations from "@/components/docentes/gestion-evaluaciones/ManageEvaluations.vue"; // Gestionar evaluaciones
 // Componente de gestión de estudiantes
-import TeacherStudentManagement from "@/components/TeacherStudentManagement.vue"; // Gestión de estudiantes
+import TeacherStudentManagement from "@/components/docentes/gestion-estudiantes/TeacherStudentManagement.vue"; // Gestión de estudiantes
 // Vista de evaluación completada
 import EvaluationCompleted from "@/views/EvaluationCompleted.vue"; // Evaluación completada
 
@@ -87,12 +87,12 @@ const router = createRouter({
           // Ruta por defecto - muestra la información general
           path: "",
           name: "DocenteHome",
-          component: () => import("@/components/CreateEvaluation.vue"),
+          component: () => import("@/components/docentes/crear-evaluacion/CreateEvaluation.vue"),
         },
         {
           path: "crear-ejercicio",
           name: "CreateExercise",
-          component: () => import("@/components/CreateExercise.vue"),
+          component: () => import("@/components/docentes/crear-ejercicio/CreateExercise.vue"),
         },
         // Nuevas rutas para evaluaciones
         {
@@ -120,7 +120,7 @@ const router = createRouter({
         {
           path: "repositorio-ejercicios",
           name: "TeacherExerciseRepository",
-          component: () => import("@/components/ExerciseRepository.vue"),
+          component: () => import("@/components/docentes/repositorio-ejercicios/ExerciseRepository.vue"),
         },
       ],
     },
@@ -135,23 +135,23 @@ const router = createRouter({
           // Ruta por defecto
           path: "",
           name: "AdminHome",
-          component: () => import("@/components/AdminHome.vue"),
+          component: () => import("@/components/admin/AdminHome.vue"),
         },
         {
           path: "crear-ejercicio",
           name: "AdminCreateExercise",
-          component: () => import("@/components/CreateExercise.vue"),
+          component: () => import("@/components/docentes/crear-ejercicio/CreateExercise.vue"),
         },
         // Gestión de usuarios
         {
           path: "gestion-usuarios",
           name: "UserManagement",
-          component: () => import("@/components/admin/UserManagement.vue"),
+          component: () => import("@/components/admin/gestion-usuarios/UserManagement.vue"),
         },
         {
           path: "repositorio-ejercicios",
           name: "AdminExerciseRepository",
-          component: () => import("@/components/ExerciseRepository.vue"),
+          component: () => import("@/components/docentes/repositorio-ejercicios/ExerciseRepository.vue"),
         },
       ],
     },

@@ -476,9 +476,9 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 // Importaciones de iconos
-import IconUser from './icons/forms/Icon_User.vue'
-import IconLock from './icons/forms/Icon_Lock.vue'
-import IconInfo from './icons/forms/Icon_Info.vue'
+import IconUser from '../icons/forms/Icon_User.vue'
+import IconLock from '../icons/forms/Icon_Lock.vue'
+import IconInfo from '../icons/forms/Icon_Info.vue'
 
 // Router para navegación
 const router = useRouter()

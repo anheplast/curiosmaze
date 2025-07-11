@@ -20,7 +20,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
-import StudentOptions from '@/components/StudentOptions.vue';
+import StudentOptions from '@/components/estudiantes/StudentOptions.vue';
 
 export default {
   name: 'StudentDashboard',

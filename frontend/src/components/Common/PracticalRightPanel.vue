@@ -161,7 +161,7 @@
 <script>
 import { ref, inject, onMounted, onBeforeUnmount, computed, watch, nextTick, defineExpose } from 'vue';
 import { useRouter } from 'vue-router';
-import EditorCodemirror from '../EditorCodemirror.vue';
+import EditorCodemirror from '../codemirror-editor/EditorCodemirror.vue';
 import judge0Service from '@/services/judge0Service';
 import evaluationsService from '@/api/evaluationsService';
 import settingsService from '@/api/settingsService';

@@ -146,16 +146,16 @@
   import authService from '@/api/authService';
   
   // Importar componentes
-  import PendingUsers from '@/components/admin/PendingUsers.vue';
-  import ActiveUsers from '@/components/admin/ActiveUsers.vue';
-  import RejectedUsers from '@/components/admin/RejectedUsers.vue';
+  import PendingUsers from '@/components/admin/gestion-usuarios/PendingUsers.vue';
+  import ActiveUsers from '@/components/admin/gestion-usuarios/ActiveUsers.vue';
+  import RejectedUsers from '@/components/admin/gestion-usuarios/RejectedUsers.vue';
   import ConfirmModal from '@/components/admin/modals/ConfirmModal.vue';
-  import UserDetailsModal from '@/components/admin/modals/UserDetailsModal.vue';
-  import UserFormModal from '@/components/admin/modals/UserFormModal.vue';
-  import ResetPasswordModal from '@/components/admin/modals/ResetPasswordModal.vue';
-  import ImportUsersModal from '@/components/admin/modals/ImportUsersModal.vue';
-  import CustomNotification from '@/components/common/CustomNotification.vue';
-  import ErrorState from '@/components/common/ErrorState.vue';
+  import UserDetailsModal from '@/components/admin/gestion-usuarios/modals/UserDetailsModal.vue';
+  import UserFormModal from '@/components/admin/gestion-usuarios/modals/UserFormModal.vue';
+  import ResetPasswordModal from '@/components/admin/gestion-usuarios/modals/ResetPasswordModal.vue';
+  import ImportUsersModal from '@/components/admin/gestion-usuarios/modals/ImportUsersModal.vue';
+  import CustomNotification from '@/components/Common/CustomNotification.vue';
+  import ErrorState from '@/components/Common/ErrorState.vue';
   
   export default {
     name: 'UserManagement',

@@ -224,7 +224,7 @@
 <script>
 import { ref, reactive, onMounted } from 'vue';
 import settingsService from '@/api/settingsService';
-import Judge0ConnectionChecker from '@/components/Judge0ConnectionChecker.vue';
+import Judge0ConnectionChecker from '@/components/admin/Judge0ConnectionChecker.vue';
 import axios from 'axios';
 
 export default {
