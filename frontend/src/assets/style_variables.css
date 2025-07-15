@@ -1,0 +1,273 @@
+/* =====================================================
+   PALETA COMPLETA DE COLORES - CURIOSMAZE
+   ===================================================== */
+
+/* Variables base (tema oscuro por defecto) */
+:root {
+  /* =================== COLORES PRINCIPALES =================== */
+  --color-primary: #d78e05;           /* Amarillo principal */
+  --color-primary-light: #FFD54F;     /* Amarillo claro */
+  --color-primary-dark: #d8a306;      /* Amarillo oscuro */
+  --color-primary-lighter: #FFE082;   /* Amarillo muy claro */
+  
+  --color-secondary: #8A4FFF;         /* Morado principal */
+  --color-secondary-light: #A377FF;   /* Morado claro */
+  --color-secondary-dark: #6B3FC8;    /* Morado oscuro */
+  --color-secondary-lighter: #B794FF; /* Morado muy claro */
+
+  /* =================== COLORES - BACKGROUND_LOGIN =================== */
+  --color-backgroundlogin-main: #000;
+  --color-backgroundlogin-border: rgba(255, 255, 255, 0.25);
+  --color-backgroundlogin-hover: rgb(213, 216, 220);
+
+  /* =================== COLOR - POINTER =================== */
+  --color-pointer-sidebar: #2A2A30;
+
+  /* =================== COLOR - MODO-HISTORIA =================== */
+  --color-history-mode: #2A2A30;
+
+  
+  /* =================== FONDOS - TEMA OSCURO =================== */
+  --color-bg-main: #1C1C21;           /* Fondo principal */
+  --color-bg-element: #2A2A30;        /* Elementos principales */
+  --color-bg-element-alt: #25252A;    /* Elementos alternativos */
+  --color-bg-element-hover: #32323A;  /* Hover de elementos */
+  --color-bg-element-active: #3A3A45; /* Elementos activos */
+  --color-bg-darker: #131414;         /* Fondo más oscuro (editor) */
+  --color-bg-darkest: #121216;        /* Fondo extremo oscuro */
+  --color-bg-lighter: #45455A;        /* Fondo más claro */
+  
+  /* =================== TEXTO - TEMA OSCURO =================== */
+  --color-text-primary: #FFFFFF;      /* Texto principal */
+  --color-text-secondary: #E0E0E0;    /* Texto secundario */
+  --color-text-muted: #BBBBBB;        /* Texto atenuado */
+  --color-text-disabled: #757580;     /* Texto deshabilitado */
+  --color-text-faint: #9090A0;        /* Texto muy tenue */
+  
+  /* =================== ESTADOS =================== */
+  --color-success: #3ECFB2;           /* Éxito principal */
+  --color-success-light: #6BC982;     /* Éxito claro */
+  --color-success-dark: #27AE60;      /* Éxito oscuro */
+  --color-success-bg: rgba(62, 207, 178, 0.1); /* Fondo éxito */
+  
+  --color-error: #FF5959;             /* Error principal */
+  --color-error-light: #FF7E7E;       /* Error claro */
+  --color-error-dark: #F44336;        /* Error oscuro */
+  --color-error-bg: rgba(255, 89, 89, 0.1); /* Fondo error */
+  
+  --color-warning: #FFD54F;           /* Advertencia principal */
+  --color-warning-light: #FFCA28;     /* Advertencia claro */
+  --color-warning-dark: #FFBD2E;      /* Advertencia oscuro */
+  --color-warning-bg: rgba(255, 213, 79, 0.1); /* Fondo advertencia */
+  
+  --color-info: #7BA7FF;              /* Info principal */
+  --color-info-light: #65B1C1;        /* Info claro */
+  --color-info-dark: #3F51B5;         /* Info oscuro */
+  --color-info-bg: rgba(123, 167, 255, 0.1); /* Fondo info */
+  
+  /* =================== COLORES DE APOYO =================== */
+  --color-teal: #3ECFB2;              /* Teal/Verde azulado */
+  --color-coral: #FF7E7E;             /* Coral/Rojizo */
+  --color-mint: #A7E9C5;              /* Menta/Verde claro */
+  --color-lavender: #D7C3FF;          /* Lavanda/Morado claro */
+  --color-accent-blue: #4C4CFF;       /* Azul de acento (historial) */
+  --color-accent-cyan: #00BCD4;       /* Cian de acento */
+  --color-accent-purple: #9C27B0;     /* Morado de acento */
+  
+  /* =================== BORDES Y LÍNEAS =================== */
+  --color-border: #36363c;            /* Borde principal */
+  --color-border-light: #4A4A55;      /* Borde claro */
+  --color-border-focus: #8A4FFF;      /* Borde de foco */
+  --color-border-hover: #6795DE;      /* Borde hover */
+  --color-border-active: #30a755;     /* Borde activo */
+  
+  /* =================== EDITOR Y CÓDIGO =================== */
+  --color-editor-bg: #131414;         /* Fondo del editor */
+  --color-editor-cursor: #FFFFFF;     /* Cursor del editor */
+  --color-editor-selection: rgba(138, 79, 255, 0.4); /* Selección */
+  --color-editor-selection-match: rgba(255, 213, 79, 0.4); /* Coincidencia */
+  --color-editor-line-active: rgba(255, 255, 255, 0.05); /* Línea activa */
+  --color-editor-bracket: #FF9933;    /* Corchetes coincidentes */
+  --color-editor-bracket-bg: rgba(255, 153, 51, 0.3); /* Fondo corchetes */
+  --color-editor-readonly: rgba(0, 0, 0, 0.15); /* Overlay solo lectura */
+  
+  /* =================== BOTONES ESPECÍFICOS =================== */
+  --color-btn-test: #121216;          /* Botón TEST */
+  --color-btn-test-border: #00B294;   /* Borde botón TEST */
+  --color-btn-test-hover: #34495E;    /* Hover botón TEST */
+  --color-btn-test-success: #27AE60;  /* TEST exitoso */
+  
+  --color-btn-submit: #1262553d;      /* Botón ENVIAR */
+  --color-btn-submit-border: #30a755; /* Borde botón ENVIAR */
+  --color-btn-submit-hover: #2D7D46;  /* Hover botón ENVIAR */
+  
+  --color-btn-cooldown: #8B4513;      /* Botón en cooldown */
+  --color-btn-cooldown-border: #A0522D; /* Borde cooldown */
+  --color-btn-cooldown-text: #FFE4E1; /* Texto cooldown */
+  
+  /* =================== LOGOUT Y ESTADOS CRÍTICOS =================== */
+  --color-logout: #ff9a9a;            /* Color logout normal */
+  --color-logout-hover: #ff7a7a;      /* Color logout hover */
+  --color-logout-bg: rgba(255, 122, 122, 0.15); /* Fondo logout */
+  
+  /* =================== SOMBRAS =================== */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.1);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.25);
+  
+  /* =================== RADIOS DE BORDE =================== */
+  --border-radius-sm: 6px;
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  
+  /* =================== TRANSICIONES =================== */
+  --transition-fast: 0.2s;
+  --transition-smooth: 0.3s;
+  --transition-slow: 0.5s;
+  
+  /* =================== PUNTUACIONES Y RENDIMIENTO =================== */
+  --color-score-excellent: #4CAF50;   /* Excelente (90-100%) */
+  --color-score-good: #FFCA28;        /* Bueno (70-89%) */
+  --color-score-average: #FF9800;     /* Regular (50-69%) */
+  --color-score-poor: #F44336;        /* Malo (0-49%) */
+  
+  --color-status-completed: #4CAF50;  /* Completado */
+  --color-status-partial: #FF9800;    /* Parcial */
+  --color-status-not-attempted: #78788A; /* No intentado */
+}
+
+/* =================== TEMA CLARO =================== */
+[data-theme="light"] {
+  /* =================== FONDOS - TEMA CLARO =================== */
+  --color-bg-main: #F8F9FA;           /* Fondo principal claro */
+  --color-bg-element: #f8f9f9;        /* Elementos principales claros */
+  --color-bg-element-alt: #F1F3F4;    /* Elementos alternativos claros */
+  --color-bg-element-hover: #E8F0FE;  /* Hover elementos claros */
+  --color-bg-element-active: #E3F2FD; /* Elementos activos claros */
+  --color-bg-darker: #F5F5F5;         /* Más "oscuro" en tema claro */
+  --color-bg-darkest: #EEEEEE;        /* Más oscuro aún */
+  --color-bg-lighter: #FAFAFA;        /* Más claro */
+
+  /* =================== COLORES - BACKGROUND_LOGIN =================== */
+  --color-backgroundlogin-main: #FFFFFF;
+  --color-backgroundlogin-border: rgba(0, 0, 0, 0.15);
+  --color-backgroundlogin-hover: rgb(45, 55, 65);
+
+
+  /* =================== COLOR - POINTER =================== */
+  --color-pointer-sidebar: #d5d8dc;
+
+  --color-btn-test: #ffffff;          /* Botón TEST */
+
+  /* =================== COLOR - MODO-HISTORIA =================== */
+  --color-history-mode: #545658;
+
+
+  
+  /* =================== TEXTO - TEMA CLARO =================== */
+  --color-text-primary: #1A1A1A;      /* Texto principal oscuro */
+  --color-text-secondary: #4A4A4A;    /* Texto secundario */
+  --color-text-muted: #6B7280;        /* Texto atenuado */
+  --color-text-disabled: #9CA3AF;     /* Texto deshabilitado */
+  --color-text-faint: #9090A0;        /* Texto muy tenue */
+  
+  /* =================== BORDES - TEMA CLARO =================== */
+  --color-border: #E5E7EB;            /* Borde principal claro */
+  --color-border-light: #F3F4F6;      /* Borde claro */
+  
+  /* =================== SOMBRAS - TEMA CLARO =================== */
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.15);
+  
+  /* =================== EDITOR - TEMA CLARO =================== */
+  --color-editor-bg: #FAFAFA;         /* Fondo editor claro */
+  --color-editor-cursor: #1A1A1A;     /* Cursor oscuro */
+  --color-editor-line-active: rgba(0, 0, 0, 0.03); /* Línea activa sutil */
+  --color-editor-readonly: rgba(0, 0, 0, 0.05); /* Overlay más sutil */
+  
+  /* Los colores principales, estados y acentos se mantienen iguales
+     porque están diseñados para funcionar en ambos temas */
+}
+
+/* =================== AUTO-DETECCIÓN DEL TEMA DEL SISTEMA =================== */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    /* Aplicar automáticamente el tema claro si el sistema lo prefiere */
+    --color-bg-main: #F8F9FA;
+    --color-bg-element: #FFFFFF;
+    --color-bg-element-alt: #F1F3F4;
+    --color-bg-element-hover: #E8F0FE;
+    --color-bg-element-active: #E3F2FD;
+    --color-bg-darker: #F5F5F5;
+    --color-bg-darkest: #EEEEEE;
+    --color-bg-lighter: #FAFAFA;
+    
+    --color-text-primary: #1A1A1A;
+    --color-text-secondary: #4A4A4A;
+    --color-text-muted: #6B7280;
+    --color-text-disabled: #9CA3AF;
+    --color-text-faint: #9090A0;
+    
+    --color-border: #E5E7EB;
+    --color-border-light: #F3F4F6;
+    
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.15);
+    
+    --color-editor-bg: #FAFAFA;
+    --color-editor-cursor: #1A1A1A;
+    --color-editor-line-active: rgba(0, 0, 0, 0.03);
+    --color-editor-readonly: rgba(0, 0, 0, 0.05);
+
+    /* =================== COLORES - BACKGROUND_LOGIN =================== */  
+    --color-backgroundlogin-main: #FFFFFF;
+    --color-backgroundlogin-border: rgba(0, 0, 0, 0.15);
+    --color-backgroundlogin-hover: rgb(45, 55, 65);
+
+
+    /* =================== COLOR - POINTER =================== */
+  --color-pointer-sidebar: #2A2A30;
+
+  /* =================== COLOR - MODO-HISTORIA =================== */
+  --color-history-mode: #545658;
+
+
+  }
+  
+}
+
+/* =================== CLASES DE UTILIDAD =================== */
+.theme-transition {
+  transition: background-color var(--transition-smooth), 
+              color var(--transition-smooth), 
+              border-color var(--transition-smooth),
+              box-shadow var(--transition-smooth) !important;
+}
+
+.theme-override {
+  background-color: var(--color-bg-element) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* =================== CLASES PARA ESTADOS DE PUNTUACIÓN =================== */
+.score-excellent { color: var(--color-score-excellent); }
+.score-good { color: var(--color-score-good); }
+.score-average { color: var(--color-score-average); }
+.score-poor { color: var(--color-score-poor); }
+
+.bg-score-excellent { background-color: var(--color-score-excellent); }
+.bg-score-good { background-color: var(--color-score-good); }
+.bg-score-average { background-color: var(--color-score-average); }
+.bg-score-poor { background-color: var(--color-score-poor); }
+
+/* =================== CLASES PARA ESTADOS =================== */
+.status-completed { color: var(--color-status-completed); }
+.status-partial { color: var(--color-status-partial); }
+.status-not-attempted { color: var(--color-status-not-attempted); }

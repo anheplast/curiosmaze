@@ -1,0 +1,36 @@
+# =================================================================
+# ARCHIVO: /.dockerignore (raíz del proyecto)
+# Excluye archivos de la raíz al construir contenedores
+# =================================================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+#docker-compose*.yml
+.dockerignore
+
+# Documentación
+README.md
+docs/
+img/
+
+# Archivos de configuración del proyecto
+*.md
+
+# Logs globales
+logs/
+*.log
+
+# Archivos temporales
+temp/
+tmp/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Configuraciones locales
+.env*

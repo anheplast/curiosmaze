@@ -1,0 +1,88 @@
+# =================================================================
+# ARCHIVO: /backend/.dockerignore
+# Excluye archivos innecesarios del contexto de construcción del backend
+# =================================================================
+
+# Archivos de entorno y configuración sensible
+.env
+.env.*
+*.env
+
+# Base de datos local
+*.sqlite3
+db.sqlite3
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs y archivos temporales
+*.log
+logs/
+temp/
+tmp/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+#Dockerfile
+#docker-compose*.yml
+.dockerignore
+
+# Archivos de media y uploads (en desarrollo)
+media/
+uploads/
+
+# Archivos estáticos recolectados
+staticfiles/
+static_collected/
+
+# Coverage y testing
+.coverage
+.pytest_cache/
+.tox/
+.coverage.*
+
+# Documentación
+docs/
+*.md
+README*
+

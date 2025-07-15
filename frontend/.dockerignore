@@ -1,0 +1,66 @@
+# =================================================================
+# ARCHIVO: /frontend/.dockerignore  
+# Excluye archivos innecesarios del contexto de construcción del frontend
+# =================================================================
+
+# Dependencias de Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de entorno
+.env
+.env.*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos de construcción
+dist/
+build/
+
+# Archivos de desarrollo
+.vite/
+.cache/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+#Dockerfile*
+#docker-compose*.yml
+.dockerignore
+
+# Testing
+coverage/
+.nyc_output/
+.jest/
+
+# Documentación
+docs/
+*.md
+README*
+
+# Archivos temporales
+temp/
+tmp/
+.tmp/

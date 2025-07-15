@@ -1,0 +1,210 @@
+# docker-compose.yml
+# Ubicación: /docker-compose.yml (raíz del proyecto)
+
+version: '3.8'
+
+# Definimos las redes para que los contenedores se comuniquen
+networks:
+  curiosmaze-net:
+    driver: bridge
+
+# Definimos volúmenes para persistir datos
+volumes:
+  backend_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+services:
+  # =================================================================
+  # SERVICIO: PostgreSQL Database
+  # =================================================================
+  db:
+    image: postgres:15-alpine
+    container_name: curiosmaze-db
+    restart: unless-stopped
+    environment:
+      # Usa las variables del .env
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups  # Para respaldos manuales
+    ports:
+      - "${DATABASE_PORT}:5432"
+    networks:
+      - curiosmaze-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =================================================================
+  # SERVICIO: Backend Django API
+  # =================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: curiosmaze-backend
+    restart: unless-stopped
+    environment:
+      # Configuración que hereda del .env principal
+      - DEBUG=${DEBUG}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DOCKER_ENVIRONMENT=true
+      
+      # Configuración de base de datos usando variables del .env
+      - DATABASE_ENGINE=django.db.backends.postgresql
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST=db  # Nombre del servicio Docker
+      - DATABASE_PORT=5432
+      
+      # URLs de servicios externos usando variables del .env
+      - JUDGE0_API_URL=${JUDGE0_API_URL}
+      - JUDGE0_AUTH_TOKEN=${JUDGE0_AUTH_TOKEN:-}
+      - JUDGE0_MAX_WORKERS=${JUDGE0_MAX_WORKERS}
+      - JUDGE0_TIMEOUT=${JUDGE0_TIMEOUT}
+      
+      # Configuración CORS usando variables del .env
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+      
+      # Límites de ejecución para Judge0
+      - CPU_TIME_LIMIT=${CPU_TIME_LIMIT}
+      - CPU_EXTRA_TIME=${CPU_EXTRA_TIME}
+      - WALL_TIME_LIMIT=${WALL_TIME_LIMIT}
+      - MEMORY_LIMIT=${MEMORY_LIMIT}
+      
+      # Configuración de cache (Redis)
+      - REDIS_URL=redis://redis:${REDIS_PORT}/1
+      
+      # Configuración de logging
+      - LOG_LEVEL=DEBUG
+      
+    volumes:
+      # Montar código fuente para desarrollo (hot-reload)
+      - ./backend:/app
+      - backend_data:/app/media
+      - ./backend/logs:/app/logs
+    ports:
+      - "${BACKEND_PORT}:8000"
+    networks:
+      - curiosmaze-net
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =================================================================
+  # SERVICIO: Frontend Vue.js (Modo Desarrollo)
+  # =================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development  # Usar etapa de desarrollo del Dockerfile
+    container_name: curiosmaze-frontend
+    restart: unless-stopped
+    environment:
+      # Variables específicas para Vue.js + Vite usando .env
+      # Nota: Estas URLs son las que usa mi navegador
+      - VITE_API_URL=${BACKEND_URL}/api
+      - VITE_JUDGE0_API_URL=${JUDGE0_API_URL}
+      
+      # Configuración de la aplicación
+      - VITE_APP_TITLE=CURIOSMAZE
+      - VITE_APP_VERSION=0.5.1
+      - VITE_APP_ENV=development
+      - VITE_DEBUG_MODE=true
+      - VITE_SHOW_DEV_OVERLAY=true
+      
+      # Límites de ejecución (para mostrar en la UI)
+      - VITE_CPU_TIME_LIMIT=${CPU_TIME_LIMIT}
+      - VITE_CPU_EXTRA_TIME=${CPU_EXTRA_TIME}
+      - VITE_WALL_TIME_LIMIT=${WALL_TIME_LIMIT}
+      - VITE_MEMORY_LIMIT=${MEMORY_LIMIT}
+      
+      # Configuración de UI/UX
+      - VITE_DEFAULT_THEME=dark
+      - VITE_ENABLE_ANIMATIONS=true
+      - VITE_NOTIFICATION_DURATION=4000
+      
+      # Configuración del editor
+      - VITE_EDITOR_THEME=monokai
+      - VITE_EDITOR_FONT_SIZE=14
+      - VITE_EDITOR_LINE_NUMBERS=true
+      - VITE_EDITOR_AUTOCOMPLETE=true
+      
+      # Timeouts
+      - VITE_API_TIMEOUT=30000
+      - VITE_JUDGE0_TIMEOUT=30000
+      
+    volumes:
+      # Montar código fuente para desarrollo (hot-reload)
+      - ./frontend:/app
+      - /app/node_modules  # Volumen anónimo para node_modules (optimización)
+    ports:
+      - "${FRONTEND_PORT}:5173"
+    networks:
+      - curiosmaze-net
+    depends_on:
+      - backend
+    stdin_open: true  # Para que Vite funcione correctamente
+    tty: true
+
+  # =================================================================
+  # SERVICIO: Redis Cache (Para mejorar rendimiento)
+  # =================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: curiosmaze-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - curiosmaze-net
+    volumes:
+      - ./redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # =================================================================
+  # SERVICIO: Nginx Reverse Proxy (Opcional para desarrollo avanzado)
+  # =================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: curiosmaze-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - backend_data:/media:ro
+    networks:
+      - curiosmaze-net
+    depends_on:
+      - backend
+      - frontend
+    profiles:
+      - proxy  # Solo se ejecuta si usamos: docker-compose --profile proxy up
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

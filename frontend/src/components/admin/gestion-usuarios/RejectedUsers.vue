@@ -1,0 +1,400 @@
+<!-- src/components/admin/gestion-usuarios/RejectedUsers.vue -->
+<template>
+  <div class="rejected-users-container">
+    <div v-if="users.length === 0" class="empty-state">
+      <div class="empty-icon">🗑️</div>
+      <h2 class="empty-title">No hay solicitudes rechazadas</h2>
+      <p class="empty-message">Las solicitudes rechazadas aparecerán aquí.</p>
+    </div>
+
+    <div v-else class="user-cards rejected-cards">
+      <div v-for="user in users" :key="user.id" class="user-card">
+        <div class="user-card-header rejected">
+          <div class="user-avatar">
+            {{ getInitials(user.nombres, user.apellidos) }}
+          </div>
+          <div class="user-details">
+            <h3 class="user-name">{{ user.nombres }} {{ user.apellidos }}</h3>
+            <p class="user-id">
+              <span class="id-icon">🆔</span> {{ user.identificacion }}
+            </p>
+            <p class="user-email">
+              <span class="email-icon">📧</span> {{ user.email || 'No disponible' }}
+            </p>
+          </div>
+          <div class="role-badge" :class="user.rol">
+            <span class="role-icon">
+              <span v-if="user.rol === 'estudiante'">👨‍🎓</span>
+              <span v-else-if="user.rol === 'docente'">👨‍🏫</span>
+              <span v-else>👑</span>
+            </span>
+            {{ user.rol }}
+          </div>
+        </div>
+
+        <div class="user-card-body">
+          <div class="user-info-grid">
+            <div class="info-item" v-if="user.rol === 'estudiante'">
+              <span class="info-icon">📚</span>
+              <span class="info-label">Curso:</span>
+              <span class="info-value">{{ getCursoNombre(user.curso) }} "{{ user.paralelo || '-' }}"</span>
+            </div>
+            <div class="info-item" v-if="user.rol === 'docente' && user.especializacion">
+              <span class="info-icon">🎓</span>
+              <span class="info-label">Especialización:</span>
+              <span class="info-value">{{ user.especializacion }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-icon">📆</span>
+              <span class="info-label">Fecha de rechazo:</span>
+              <span class="info-value">{{ formatDate(user.fecha_rechazo || user.fecha_registro || new Date()) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="user-card-footer">
+          <button class="button reconsider-btn" @click="$emit('reconsider-user', user)">
+            <span class="button-icon">🔄</span>
+            <span>Aprobar</span>
+          </button>
+          <button class="button delete-btn" @click="$emit('delete-user', user)">
+            <span class="button-icon">🗑️</span>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'RejectedUsers',
+  props: {
+    users: {
+      type: Array,
+      required: true
+    }
+  },
+  methods: {
+    // Obtener iniciales para avatar
+    getInitials(nombres, apellidos) {
+      let initials = '';
+      if (nombres) {
+        initials += nombres.charAt(0).toUpperCase();
+      }
+      if (apellidos) {
+        initials += apellidos.charAt(0).toUpperCase();
+      }
+      return initials || '?';
+    },
+
+    // Formatear fecha
+    formatDate(date) {
+      if (!date) return 'N/A';
+
+      const d = new Date(date);
+      return d.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+
+    // Obtener nombre del curso
+    getCursoNombre(curso) {
+      if (!curso) return 'No asignado';
+
+      const cursos = {
+        '1': '1ro de Bachillerato',
+        '2': '2do de Bachillerato',
+        '3': '3ro de Bachillerato',
+        '8': '8vo de Básica',
+        '9': '9no de Básica',
+        '10': '10mo de Básica'
+      };
+      return cursos[curso] || `Curso ${curso}`;
+    }
+  }
+};
+</script>
+
+<style scoped>
+/* =================== CONTENEDOR PRINCIPAL =================== */
+.rejected-users-container {
+  width: 100%;
+}
+
+/* =================== ESTADO VACÍO =================== */
+.empty-state {
+  text-align: center;
+  padding: 3rem 0;
+  background-color: var(--color-bg-element);
+  border-radius: var(--border-radius);
+  border: 2px dashed var(--color-border);
+  margin-top: 1rem;
+}
+
+.empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  color: var(--color-primary-light);
+  opacity: 0.7;
+}
+
+.empty-title {
+  color: var(--color-text-primary);
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty-message {
+  color: var(--color-text-secondary);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* =================== GRID DE TARJETAS =================== */
+.user-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+/* =================== TARJETAS DE USUARIO =================== */
+.user-card {
+  background-color: var(--color-bg-element);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.user-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-error);
+}
+
+/* =================== HEADER DE LA TARJETA =================== */
+.user-card-header {
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: var(--color-bg-element-alt);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.user-card-header.rejected {
+  background-color: var(--color-error-bg);
+  border-bottom: 3px solid var(--color-error);
+}
+
+/* =================== AVATAR Y DETALLES DEL USUARIO =================== */
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--color-error);
+  color: var(--color-bg-element);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.user-details {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-id,
+.user-email {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.id-icon,
+.email-icon {
+  color: var(--color-error);
+}
+
+/* =================== BADGES DE ROL =================== */
+.role-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.role-badge.estudiante {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.role-badge.docente {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.role-badge.admin {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+/* =================== CUERPO DE LA TARJETA =================== */
+.user-card-body {
+  padding: 1.25rem;
+  flex-grow: 1;
+}
+
+.user-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.info-icon {
+  color: var(--color-error);
+  font-size: 1.1rem;
+}
+
+.info-label {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--color-text-primary);
+}
+
+/* =================== FOOTER DE LA TARJETA =================== */
+.user-card-footer {
+  padding: 1.25rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  background-color: var(--color-bg-element-alt);
+  border-top: 1px solid var(--color-border);
+}
+
+/* =================== BOTONES =================== */
+.button {
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button-icon {
+  font-size: 1.1rem;
+}
+
+.reconsider-btn {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
+}
+
+.reconsider-btn:hover {
+  background-color: var(--color-info);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.delete-btn {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.delete-btn:hover {
+  background-color: var(--color-error);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* =================== MEDIA QUERIES =================== */
+@media (max-width: 768px) {
+  .user-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .user-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: center;
+    padding-top: 3rem;
+  }
+
+  .role-badge {
+    position: static;
+    margin: 0.5rem auto;
+  }
+
+  .user-avatar {
+    margin: 0 auto;
+  }
+
+  .user-details {
+    width: 100%;
+    text-align: center;
+  }
+
+  .user-id,
+  .user-email {
+    justify-content: center;
+  }
+
+  .user-card-footer {
+    flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
+  }
+}
+</style>
