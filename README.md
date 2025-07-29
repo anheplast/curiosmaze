@@ -15,6 +15,14 @@
 
 La plataforma permite crear evaluaciones interactivas con ejercicios de programación, los cuales son evaluados automáticamente mediante un sistema de ejecución de código (Judge0) que proporciona retroalimentación inmediata.
 
+## 🏫 Implementación Educativa
+
+<p align="center">
+  <img src="./img/fe_y_alegria_logo.png" alt="Logo Unidad Educativa Juan Pablo II" width="60"/>
+</p>
+
+Implementado en la **Unidad Educativa Juan Pablo II** – Ibarra, Ecuador, como parte de un proyecto de mejora educativa en el área de programación y pensamiento lógico.
+
 ## Stack Tecnológico
 
 | Componente | Tecnología |
@@ -29,17 +37,18 @@ La plataforma permite crear evaluaciones interactivas con ejercicios de programa
 ## Inicio Rápido
 
 ### Prerequisitos
-- Docker & Docker Compose
-- node
-- python
+- Docker & Docker Compose (para instalación con contenedores)
+- Node.js 18+ (para instalación local)
+- Python 3.9+ (para instalación local)
+- PostgreSQL (para instalación local)
 
-### Instalación
+### 🐳 Instalación con Docker (Recomendado)
 ```bash
 # Clonar repositorio
 git clone <repository-url>
 cd curiosmaze
 
-# Copiar variables de entorno ajustarlas
+# Copiar variables de entorno y ajustarlas
 cp .env.example .env
 
 # Iniciar con Docker
@@ -62,8 +71,85 @@ docker-compose ps
 
 # Ver logs
 docker-compose logs -f
-
 ```
+
+### 💻 Instalación Local (Sin Docker)
+
+#### 1. Configurar Base de Datos
+```bash
+# Instalar PostgreSQL y crear base de datos
+sudo apt install postgresql postgresql-contrib  # Ubuntu/Debian
+# O usar el instalador de PostgreSQL para Windows/macOS
+
+# Crear base de datos
+sudo -u postgres psql
+CREATE DATABASE db_curiosmaze;
+CREATE USER curiosmaze WITH PASSWORD 'pass_curiosmaze';
+GRANT ALL PRIVILEGES ON DATABASE db_curiosmaze TO curiosmaze;
+\q
+```
+
+#### 2. Configurar Backend (Django)
+```bash
+# Navegar a la carpeta backend
+cd backend
+
+# Crear entorno virtual
+python -m venv venv
+
+# Activar entorno virtual
+# En Windows:
+venv\Scripts\activate
+# En Linux/macOS:
+source venv/bin/activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con la configuración de tu base de datos local
+
+# Ejecutar migraciones
+python manage.py makemigrations
+python manage.py migrate
+
+# Crear superusuario (opcional)
+python manage.py createsuperuser
+
+# Iniciar servidor de desarrollo
+python manage.py runserver
+```
+
+#### 3. Configurar Frontend (Vue.js)
+```bash
+# En otra terminal, navegar a la carpeta frontend
+cd frontend
+
+# Instalar dependencias
+npm install
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con las URLs de tu backend local
+
+# Iniciar servidor de desarrollo
+npm run dev
+```
+
+#### 4. Configurar Judge0 (Opcional para desarrollo completo)
+```bash
+# Judge0 requiere Docker, seguir documentación oficial:
+# https://github.com/judge0/judge0
+
+# Ejemplo básico con Docker:
+docker run -p 2358:2358 -d judge0/judge0:1.13.0
+```
+
+### URLs de Acceso
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000/api
+- **Admin Django**: http://localhost:8000/admin
 
 ### **Solución de Problemas Comunes**
 
@@ -99,10 +185,19 @@ print('Conexión exitosa!')
 "
 ```
 
-### URLs de Acceso
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8000/api
-- **Admin Django**: http://localhost:8000/admin
+**Problema: Errores de instalación local**
+```bash
+# Backend - Problemas de dependencias
+pip install --upgrade pip
+pip install -r requirements.txt --force-reinstall
+
+# Frontend - Limpiar node_modules
+rm -rf node_modules package-lock.json
+npm install
+
+# Base de datos - Verificar conexión
+python manage.py dbshell
+```
 
 ## 📁 Estructura del Proyecto
 
@@ -166,9 +261,6 @@ docker-compose up -d               # Levanta todo
 docker-compose --profile proxy up -d  # Con Nginx
 ```
 
+## 📝 Licencia
 
-## 🏫 Implementación Educativa
-
-<img src="./img/fe_y_alegria_logo.png" alt="Logo Unidad Educativa Juan Pablo II" width="60"/>
-
-Implementado en la Unidad Educativa Juan Pablo II – Ibarra, Ecuador.
+Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
