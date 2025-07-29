@@ -29,7 +29,7 @@ COPY requirements.txt .
 
 # Instalar dependencias de Python
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+    pip install --retries 10 --timeout 60 -r requirements.txt
 
 # Copiar el código del proyecto
 COPY . .

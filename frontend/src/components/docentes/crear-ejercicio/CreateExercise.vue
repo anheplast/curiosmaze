@@ -322,19 +322,16 @@
                 </div>
 
                 <div class="test-template-info">
-                  <h4>Tipos de Tests que puede implementar:</h4>
+                  <h4>Tipos de Tests compatibles (probados) con Judge0:</h4>
                   <ul class="test-types-list">
-                    <li><strong>Tests de Ejecución</strong>: Verifican si el código compila y ejecuta sin errores.</li>
-                    <li><strong>Tests de Casos</strong>: Comprueban que el programa produce los resultados esperados
-                      para diferentes entradas.</li>
-                    <li><strong>Tests de Casos Límite</strong>: Prueban el comportamiento con valores extremos o
-                      inesperados.</li>
-                    <li><strong>Tests de Rendimiento</strong>: Evalúan si la solución es eficiente y cumple los
-                      requisitos de tiempo.</li>
-                    <li><strong>Tests de Manejo de Errores</strong>: Verifican respuestas adecuadas ante entradas
-                      anómalas.</li>
+                    <li><strong>Tests de Entrada/Salida Estándar</strong>: Evalúan si el código produce exactamente la
+                      salida esperada para una entrada dada. Son ideales para problemas de programación competitiva y
+                      educativos.</li>
+                    
                   </ul>
-                  <p>El sistema utiliza Judge0 para ejecutar los tests y determinar si la solución es correcta.</p>
+                  <p>Judge0 ejecuta el código en un entorno aislado, compara la salida generada con la salida esperada y
+                    determina si la solución es correcta o no.</p>
+
                   <div class="supported-languages">
                     <span class="supported-label">Lenguajes con tests:</span>
                     <div class="language-tag-container">

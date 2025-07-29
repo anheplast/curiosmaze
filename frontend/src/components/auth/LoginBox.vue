@@ -1201,7 +1201,7 @@ body {
 .logo-institucion {
   width: 50px;
   height: 50px;
-  background-image: url('../../public/Institucion_img/fe_y_alegria_logo.png');
+  background-image: url('../../../public/Institucion_img/fe_y_alegria_logo.png');
   background-size: contain;
   background-repeat: no-repeat; 
   background-position: center;

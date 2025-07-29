@@ -1224,4 +1224,100 @@ export default {
     margin-left: 0;
   }
 }
+
+
+/* =================== TABLAS =================== */
+.markdown-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background-color: var(--color-bg-element);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.markdown-preview table thead {
+  background-color: var(--color-secondary);
+  color: var(--color-text-primary);
+}
+
+.markdown-preview table thead th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.markdown-preview table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--transition-fast);
+}
+
+.markdown-preview table tbody tr:hover {
+  background-color: var(--color-bg-element-hover);
+}
+
+.markdown-preview table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.markdown-preview table td {
+  padding: 0.75rem 1rem;
+  color: var(--color-text-primary);
+  vertical-align: top;
+}
+
+.markdown-preview table th:first-child,
+.markdown-preview table td:first-child {
+  padding-left: 1.25rem;
+}
+
+.markdown-preview table th:last-child,
+.markdown-preview table td:last-child {
+  padding-right: 1.25rem;
+}
+
+/* Tabla alternada (striped) */
+.markdown-preview table tbody tr:nth-child(even) {
+  background-color: var(--color-bg-element-alt);
+}
+
+.markdown-preview table tbody tr:nth-child(even):hover {
+  background-color: var(--color-bg-element-hover);
+}
+
+/* Responsive para tablas */
+@media (max-width: 768px) {
+  .markdown-preview table {
+    font-size: 0.85rem;
+    margin: 1rem 0;
+  }
+  
+  .markdown-preview table th,
+  .markdown-preview table td {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .markdown-preview table th:first-child,
+  .markdown-preview table td:first-child {
+    padding-left: 1rem;
+  }
+  
+  .markdown-preview table th:last-child,
+  .markdown-preview table td:last-child {
+    padding-right: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .markdown-preview table {
+    font-size: 0.8rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
 </style>
