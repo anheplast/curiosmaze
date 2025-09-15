@@ -23,6 +23,46 @@ La plataforma permite crear evaluaciones interactivas con ejercicios de programa
 
 Implementado en la **Unidad Educativa Juan Pablo II** – Ibarra, Ecuador, como parte de un proyecto de mejora educativa en el área de programación y pensamiento lógico.
 
+
+## 📸 Capturas de pantalla
+
+<details>
+  <summary>Ver capturas</summary>
+
+  ### Captura 1
+  ![Captura 1](img/screenshots/captura1.png)
+
+  ### Captura 2
+  ![Captura 2](img/screenshots/captura2.png)
+
+  ### Captura 3
+  ![Captura 3](img/screenshots/captura3.png)
+
+  ### Captura 4
+  ![Captura 4](img/screenshots/captura4.png)
+
+  ### Captura 5
+  ![Captura 5](img/screenshots/captura5.png)
+
+  ### Captura 6
+  ![Captura 6](img/screenshots/captura6.png)
+
+  ### Captura 7
+  ![Captura 7](img/screenshots/captura7.png)
+
+  ### Captura 8
+  ![Captura 8](img/screenshots/captura8.png)
+
+  ### Captura 9
+  ![Captura 9](img/screenshots/captura9.png)
+
+</details>
+
+
+
+
+
+
 ## Stack Tecnológico
 
 | Componente | Tecnología |
