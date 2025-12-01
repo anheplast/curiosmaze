@@ -30,7 +30,7 @@ Implementado en la **Unidad Educativa Juan Pablo II** – Ibarra, Ecuador, como 
   <summary>Ver capturas</summary>
 
   ### Captura 1
-  ![Captura 1](img/screenshots/captura1.png)
+  ![Captura 1](img/screenshots/login_curiosmaze.png)
 
   ### Captura 2
   ![Captura 2](img/screenshots/captura2.png)
